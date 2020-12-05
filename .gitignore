@@ -5,3 +5,5 @@ __pycache__/
 # Jupyter.
 .ipynb_checkpoints
 
+# Config files.
+config.py
