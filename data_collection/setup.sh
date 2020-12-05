@@ -13,7 +13,8 @@ API_KEY="$4"
 
 cat > config.py << EOF
 database = {
-  'name': '$DATABASE',
+  'host': 'localhost',
+  'database': '$DATABASE',
   'user': '$DATABASE_USER',
   'password': '$DATABASE_PASSWORD',
 }
