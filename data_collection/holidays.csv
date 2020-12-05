@@ -1,0 +1,97 @@
+date,nye,ngs,sifma,otc,day
+2015-01-01,closed,closed,closed,,New Year's Day
+2015-01-19,closed,closed,closed,,Martin Luther King Jr. Day
+2015-02-16,closed,closed,closed,,Presidents' Day/Washington's Bday
+2015-04-02,open,open,14:00,,Maundy Thursday
+2015-04-03,closed,closed,closed,,Good Friday
+2015-05-22,open,open,14:00,,Friday Before Memorial Day
+2015-05-25,closed,closed,closed,,Memorial Day
+2015-07-02,open,open,14:00,,Day Before Independence Day
+2015-07-03,closed,closed,closed,,Independence Day
+2015-09-07,closed,closed,closed,,Labor Day
+2015-11-26,closed,closed,closed,,Thanksgiving Day
+2015-11-27,13:00,13:00,14:00,,Day After Thanksgiving
+2015-12-24,13:00,13:00,14:00,,Christmas Eve
+2015-12-25,closed,closed,closed,,Christmas Day
+2015-12-31,open,open,14:00,,New Year's Eve
+2016-01-01,closed,closed,closed,,New Year's Day
+2016-01-18,closed,closed,closed,,Martin Luther King Jr. Day
+2016-02-15,closed,closed,closed,,Presidents' Day/Washington's Bday
+2016-03-24,open,open,14:00,,Maundy Thursday
+2016-03-25,closed,closed,closed,,Good Friday
+2016-05-27,open,open,14:00,,Friday Before Memorial Day
+2016-05-30,closed,closed,closed,,Memorial Day
+2016-07-01,open,open,14:00,,Day Before Independence Day
+2016-07-04,closed,closed,closed,,Independence Day
+2016-09-05,closed,closed,closed,,Labor Day
+2016-11-11,open,open,closed,,Veterans Day
+2016-11-24,closed,closed,closed,,Thanksgiving Day
+2016-11-25,13:00,13:00,14:00,,Day After Thanksgiving
+2016-12-23,13:00,13:00,14:00,,Christmas Eve
+2016-12-26,closed,closed,closed,,Christmas Day
+2016-12-30,open,open,14:00,,New Year's Eve
+2017-01-02,closed,closed,closed,,New Year's Day
+2017-01-16,closed,closed,closed,,Martin Luther King Jr. Day
+2017-02-20,closed,closed,closed,,Presidents' Day/Washington's Bday
+2017-04-13,open,open,14:00,,Maundy Thursday
+2017-04-14,closed,closed,closed,,Good Friday
+2017-05-26,open,open,14:00,,Friday Before Memorial Day
+2017-05-29,closed,closed,closed,,Memorial Day
+2017-07-03,13:00,13:00,14:00,,Day Before Independence Day
+2017-07-04,closed,closed,closed,,Independence Day
+2017-09-04,closed,closed,closed,,Labor Day
+2017-11-23,closed,closed,closed,,Thanksgiving Day
+2017-11-24,13:00,13:00,14:00,,Day After Thanksgiving
+2017-12-22,13:00,13:00,14:00,,Christmas Eve
+2017-12-25,closed,closed,closed,,Christmas Day
+2017-12-29,open,open,14:00,,New Year's Eve
+2018-01-01,closed,closed,closed,,New Year's Day
+2018-01-15,closed,closed,closed,,Martin Luther King Jr. Day
+2018-02-19,closed,closed,closed,,Presidents' Day/Washington's Bday
+2018-03-29,open,open,14:00,,Maundy Thursday
+2018-03-30,closed,closed,closed,,Good Friday
+2018-05-25,open,open,14:00,,Friday Before Memorial Day
+2018-05-28,closed,closed,closed,,Memorial Day
+2018-07-03,13:00,13:00,14:00,,Day Before Independence Day
+2018-07-04,closed,closed,closed,,Independence Day
+2018-09-03,closed,closed,closed,,Labor Day
+2018-11-22,closed,closed,closed,,Thanksgiving Day
+2018-11-23,13:00,13:00,14:00,,Day After Thanksgiving
+2018-12-05,closed,closed,closed,,George H.W. Bush
+2018-12-24,13:00,13:00,14:00,,Christmas Eve
+2018-12-25,closed,closed,closed,,Christmas Day
+2018-12-31,open,open,14:00,,New Year's Eve
+2019-01-01,closed,closed,closed,,New Year's Day
+2019-01-21,closed,closed,closed,,Martin Luther King Jr. Day
+2019-02-18,closed,closed,closed,,Presidents' Day/Washington's Bday
+2019-04-18,open,open,14:00,,Maundy Thursday
+2019-04-19,closed,closed,closed,,Good Friday
+2019-05-24,open,open,14:00,,Friday Before Memorial Day
+2019-05-27,closed,closed,closed,,Memorial Day
+2019-07-03,13:00,13:00,14:00,,Day Before Independence Day
+2019-07-04,closed,closed,closed,,Independence Day
+2019-09-02,closed,closed,closed,,Labor Day
+2019-10-14,open,open,closed,,Columbus Day
+2019-11-11,open,open,closed,,Veterans Day
+2019-11-28,closed,closed,closed,,Thanksgiving Day
+2019-11-29,13:00,13:00,14:00,,Day After Thanksgiving
+2019-12-24,13:00,13:00,14:00,,Christmas Eve
+2019-12-25,closed,closed,closed,,Christmas Day
+2019-12-31,open,open,14:00,,New Year's Eve
+2020-01-01,closed,closed,closed,closed,New Year's Day
+2020-01-20,closed,closed,closed,closed,Martin Luther King Jr. Day
+2020-02-17,closed,closed,closed,closed,Presidents' Day/Washington's Bday
+2020-04-09,open,open,14:00,open,Maundy Thursday
+2020-04-10,closed,closed,closed,closed,Good Friday
+2020-05-22,open,open,14:00,open,Friday Before Memorial Day
+2020-05-25,closed,closed,closed,closed,Memorial Day
+2020-07-02,open,open,14:00,open,Day Before Independence Day
+2020-07-03,closed,closed,closed,closed,Independence Day
+2020-09-07,closed,closed,closed,closed,Labor Day
+2020-10-12,open,open,closed,closed,Columbus Day
+2020-11-11,open,open,closed,closed,Veterans Day
+2020-11-26,closed,closed,closed,closed,Thanksgiving Day
+2020-11-27,13:00,13:00,14:00,13:00,Day After Thanksgiving
+2020-12-24,13:00,13:00,14:00,13:00,Christmas Eve
+2020-12-25,closed,closed,closed,closed,Christmas Day
+2020-12-31,open,open,14:00,open,New Year's Eve
