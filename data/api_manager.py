@@ -1,5 +1,6 @@
 import time
 import datetime
+import requests
 import logging
 
 import pandas as pd
