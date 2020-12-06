@@ -11,4 +11,4 @@ Install dependencies.
 
 Setup database: 
 
-    database/setup.sh database_name username password polygon_api_key | sudo -u root mysql
+    setup.sh database_name username password polygon_api_key | sudo -u root mysql

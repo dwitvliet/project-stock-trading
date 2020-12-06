@@ -4,7 +4,6 @@ import logging
 
 import pandas as pd
 
-import config
 
 class API_Manager:
     """ Fetch market data and historical data from the Polygon API.
@@ -21,20 +20,24 @@ class API_Manager:
     STALL_TIME_UPON_MAX_REQUESTS = 3
     MAX_ATTEMPTS = 5
     
-    def __init__(self):
+    def __init__(self, api_key):
+        self._api_key = api_key
         self._recent_requests = []
         
     def _count_recent_requests(self):
         self._recent_requests = [r for r in self._recent_requests if time.time() - r < 60]
         return len(self._recent_requests)
         
-    def _request(self, url, params={}, attempts_left=API_Manager.MAX_ATTEMPTS):
+    def _request(self, url, params={}, attempts_left=None):
+        
+        if attempts_left is None:
+            attempts_left = self.MAX_ATTEMPTS
         
         while self._count_recent_requests() >= self.MAX_REQUEST_PER_MINUTE:
             time.sleep(self.STALL_TIME_UPON_MAX_REQUESTS)
             logging.info('Stalled because of too many requests.')
         
-        params['apiKey'] = config.api_key
+        params['apiKey'] = self._api_key
         result = requests.get(f'https://api.polygon.io{url}', params=params)
 
         if result.status_code == 200:

@@ -4,8 +4,6 @@ import logging
 import mysql.connector
 import pandas as pd
 
-import config
-
 
 class Database:
     
@@ -25,7 +23,8 @@ class Database:
     
     """
     
-    def __init__(self):
+    def __init__(self, credentials):
+        self._credentials = credentials
         self._connection = None
         self._cursor_kwargs = {}
         self._create_tables()
@@ -36,7 +35,7 @@ class Database:
         return self
     
     def __enter__(self):
-        self._connection = mysql.connector.connect(**config.database, autocommit=True)
+        self._connection = mysql.connector.connect(**self._credentials, autocommit=True)
         self._cursor = self._connection.cursor(**self._cursor_kwargs)
         return self._cursor
     
