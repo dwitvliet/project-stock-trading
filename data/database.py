@@ -107,7 +107,7 @@ class Database:
             
             con.execute('''
                 CREATE TABLE IF NOT EXISTS feature_values (
-                    time DATETIME(3) NOT NULL,
+                    time DATETIME NOT NULL,
                     feature_id INT NOT NULL,
                     value DOUBLE NOT NULL,
                     PRIMARY KEY (time), 
@@ -132,7 +132,21 @@ class Database:
 
         self.insert_dataframe('holidays', holidays, replace=True)
 
-    
+    def get_holidays(self, exchange, date_from=None, date_to=None):
+        query = f'''
+            SELECT date, hours
+            FROM holidays
+            WHERE exchange = "{exchange}"
+        '''
+        if date_from:
+            query += f'AND date >= "{date_from}" '
+        if date_to:
+            query += f'AND date <= "{date_to}" '
+        with self as con:
+            con.execute(query)
+            return con.fetchall()
+        
+        
     def get_open_dates(self, exchange, date_from, date_to):
         """
         Get list of dates within range where exchange is open. Weekends and
@@ -149,17 +163,7 @@ class Database:
         open_dates = []
     
         # Get holidays.
-        query = f'''
-            SELECT date
-            FROM holidays
-            WHERE exchange = "{exchange}"
-            AND date >= "{date_from}"
-            AND date <= "{date_to}"
-            AND hours = "closed"
-        '''
-        with self as con:
-            con.execute(query)
-            holidays = [row[0] for row in con.fetchall()]
+        holidays = [date for date, hours in self.get_holidays(exchange, date_from, date_to) if hours == 'closed']
             
         for date in pd.date_range(date_from, date_to):
             # Skip Saturdays and Sundays.
@@ -175,6 +179,49 @@ class Database:
 
         return open_dates
     
+    
+    def get_open_hours(self, exchange, date_from, date_to):
+        ''' Determine which hours an exchange is open.
+        
+        Extended hours is determined by Robinhood hours.
+        
+        Args:
+            exchange (str): exchange symbol
+            date_from (date): first date in range (inclusive)
+            date_to (date): last date in range (inclusive)
+            
+        Returns:
+            {date: 
+                {
+                    'open': datetime, 
+                    'pre-open': datetime,
+                    'close': datetime,
+                    'post-close': datetime
+                }, 
+                ..
+            }
+            
+        '''
+        open_dates = self.get_open_dates(exchange, date_from, date_to)
+        holidays = dict(self.get_holidays(exchange))
+        hours = {}
+        for date in open_dates:
+            time_open = datetime.datetime.combine(date, datetime.time(9, 30))
+            time_closed = datetime.datetime.combine(date, datetime.time(16))
+            if date in holidays and holidays[date] != 'open':
+                time_closed = datetime.datetime.combine(
+                    date, 
+                    datetime.datetime.strptime(holidays[date], '%H:%M').time()
+                )
+
+            hours[date] = {
+                'open': time_open, 
+                'pre-open': time_open - datetime.timedelta(minutes=30),
+                'close': time_closed,
+                'post-close': time_closed + datetime.timedelta(hours=2),
+            }
+        return hours
+                    
     
     def get_stored_dates(self, table, ticker):
         query = f'''
@@ -256,8 +303,8 @@ class Database:
         query = f'''
             SELECT timestamp, price, volume
             FROM trades
-            WHERE ticker = {ticker}
-            AND date = {date}
+            WHERE ticker = "{ticker}"
+            AND date = "{date}"
         '''
         with self as con:
             con.execute(query)
