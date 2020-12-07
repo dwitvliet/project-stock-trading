@@ -123,10 +123,11 @@ class Database:
         holidays = pd.melt(
             holidays, 
             id_vars=['date', 'day'], 
-            value_vars=['nye', 'ngs', 'sifma', 'otc'],
+            value_vars=['nye', 'ngs'],
             var_name='exchange',
             value_name='hours'
         )
+        holidays = holidays.replace('13:00', 'half')
         holidays = holidays.dropna()
         holidays['exchange'] = holidays['exchange'].str.upper()
 
