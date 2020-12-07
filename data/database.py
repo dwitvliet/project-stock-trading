@@ -178,49 +178,6 @@ class Database:
             open_dates.append(date.date())
 
         return open_dates
-    
-    
-    def get_open_hours(self, exchange, date_from, date_to):
-        ''' Determine which hours an exchange is open.
-        
-        Extended hours is determined by Robinhood hours.
-        
-        Args:
-            exchange (str): exchange symbol
-            date_from (date): first date in range (inclusive)
-            date_to (date): last date in range (inclusive)
-            
-        Returns:
-            {date: 
-                {
-                    'open': datetime, 
-                    'pre-open': datetime,
-                    'close': datetime,
-                    'post-close': datetime
-                }, 
-                ..
-            }
-            
-        '''
-        open_dates = self.get_open_dates(exchange, date_from, date_to)
-        holidays = dict(self.get_holidays(exchange))
-        hours = {}
-        for date in open_dates:
-            time_open = datetime.datetime.combine(date, datetime.time(9, 30))
-            time_closed = datetime.datetime.combine(date, datetime.time(16))
-            if date in holidays and holidays[date] != 'open':
-                time_closed = datetime.datetime.combine(
-                    date, 
-                    datetime.datetime.strptime(holidays[date], '%H:%M').time()
-                )
-
-            hours[date] = {
-                'open': time_open, 
-                'pre-open': time_open - datetime.timedelta(minutes=30),
-                'close': time_closed,
-                'post-close': time_closed + datetime.timedelta(hours=2),
-            }
-        return hours
                     
     
     def get_stored_dates(self, table, ticker):
