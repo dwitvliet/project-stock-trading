@@ -55,33 +55,36 @@ class Database:
         with self as con:
             con.execute('''
                 CREATE TABLE IF NOT EXISTS tickers (
+                    id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
                     ticker VARCHAR(10) NOT NULL,
                     name TEXT NOT NULL,
                     sector TINYTEXT NOT NULL,
                     exchange VARCHAR(10) NOT NULL,
-                    PRIMARY KEY (ticker)
+                    PRIMARY KEY (id)
+                ) ENGINE=INNODB;
+            ''')
+            
+            con.execute('''
+                CREATE TABLE IF NOT EXISTS summary (
+                    table_name VARCHAR(10) NOT NULL,
+                    ticker_id TINYINT UNSIGNED NOT NULL,
+                    date DATE NOT NULL,
+                    PRIMARY KEY (table_name, ticker_id, date),
+                    FOREIGN KEY (ticker_id) REFERENCES tickers(id)
                 ) ENGINE=INNODB;
             ''')
 
             con.execute('''
                 CREATE TABLE IF NOT EXISTS trades (
                     id INT NOT NULL AUTO_INCREMENT,
-                    ticker VARCHAR(10) NOT NULL,
+                    ticker_id TINYINT UNSIGNED NOT NULL,
                     date DATE NOT NULL,
                     timestamp BIGINT NOT NULL,
                     price FLOAT NOT NULL,
                     volume INT NOT NULL,
                     PRIMARY KEY (id),
-                    KEY trades_select_all (ticker, date, timestamp, price, volume)
-                ) ENGINE=INNODB;
-            ''')
-
-            con.execute('''
-                CREATE TABLE IF NOT EXISTS summary (
-                    table_name VARCHAR(10) NOT NULL,
-                    ticker VARCHAR(10) NOT NULL,
-                    date DATE NOT NULL,
-                    PRIMARY KEY (table_name, ticker, date)
+                    FOREIGN KEY (ticker_id) REFERENCES tickers(id),
+                    KEY trades_select_all (ticker_id, date, timestamp, price, volume)
                 ) ENGINE=INNODB;
             ''')
 
@@ -99,13 +102,14 @@ class Database:
             con.execute('''
                 CREATE TABLE IF NOT EXISTS features (
                     id INT NOT NULL AUTO_INCREMENT,
-                    ticker VARCHAR(10) NOT NULL,
+                    ticker_id TINYINT UNSIGNED NOT NULL,
                     name VARCHAR(10) NOT NULL,
                     description TEXT,
                     PRIMARY KEY (id),
-                    UNIQUE KEY (ticker, name),
-                    KEY features_join (id, ticker, name),
-                    KEY features_select_id (ticker, name, id)
+                    UNIQUE KEY (ticker_id, name),
+                    FOREIGN KEY (ticker_id) REFERENCES tickers(id),
+                    KEY features_join (id, ticker_id, name),
+                    KEY features_select_id (ticker_id, name, id)
                 ) ENGINE=INNODB;
             ''')
             
@@ -259,7 +263,7 @@ class Database:
         with self as con:
             con.execute(query_summary, values_summary)
             con.executemany(query, values)
-            
+
             
     def get_trades(self, ticker, date):
         query = f'''
