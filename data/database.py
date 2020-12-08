@@ -1,5 +1,6 @@
 import os
 import datetime
+import functools
 import logging
 
 import mysql.connector
@@ -56,11 +57,12 @@ class Database:
             con.execute('''
                 CREATE TABLE IF NOT EXISTS tickers (
                     id TINYINT UNSIGNED NOT NULL AUTO_INCREMENT,
-                    ticker VARCHAR(10) NOT NULL,
+                    ticker VARCHAR(10) NOT NULL UNIQUE,
                     name TEXT NOT NULL,
                     sector TINYTEXT NOT NULL,
                     exchange VARCHAR(10) NOT NULL,
-                    PRIMARY KEY (id)
+                    PRIMARY KEY (id),
+                    KEY tickers_select_id (ticker, id)
                 ) ENGINE=INNODB;
             ''')
             
@@ -91,12 +93,12 @@ class Database:
             con.execute('''
                 CREATE TABLE IF NOT EXISTS bars (
                     ticker_id TINYINT UNSIGNED NOT NULL,
-                    variable VARCHAR(10) NOT NULL,
+                    stat VARCHAR(10) NOT NULL,
                     time DATETIME NOT NULL,
                     value FLOAT NOT NULL,
-                    PRIMARY KEY (ticker, variable, time), 
+                    PRIMARY KEY (ticker_id, stat, time), 
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
-                    KEY bars_select_all (ticker_id, variable, time, value)
+                    KEY bars_select_all (ticker_id, stat, time, value)
                 ) ENGINE=INNODB;
             ''')
 
@@ -152,6 +154,21 @@ class Database:
         holidays['exchange'] = holidays['exchange'].str.upper()
 
         self.insert_dataframe('holidays', holidays, replace=True)
+        
+
+    @functools.lru_cache(maxsize=None)
+    def _get_ticker_id(self, ticker):
+        query = f'''
+            SELECT id
+            FROM tickers
+            WHERE ticker = "{ticker}"
+        '''
+        with self as con:
+            con.execute(query)
+            (ticker_id, ) = con.fetchone()
+
+        return ticker_id
+        
 
     def get_holidays(self, exchange, date_from=None, date_to=None):
         query = f'''
@@ -206,7 +223,7 @@ class Database:
             SELECT date
             FROM summary
             WHERE table_name = "{table}"
-            AND ticker = "{ticker}"
+            AND ticker_id = "{self._get_ticker_id(ticker)}"
         '''
         with self as con:
             con.execute(query)
@@ -260,20 +277,47 @@ class Database:
     
     
     def store_trades(self, ticker, date, trades):
+        ticker_id = self._get_ticker_id(ticker)
+        
         query_summary = f'''
-            INSERT INTO summary (table_name, ticker, date) 
+            INSERT INTO summary (table_name, ticker_id, date) 
             VALUES (%s, %s, %s)
         '''
-        values_summary = ('trades', ticker, date)
+        values_summary = ('trades', ticker_id, date)
         
         query = f'''
-            INSERT INTO trades (ticker, date, timestamp, price, volume) 
+            INSERT INTO trades (ticker_id, date, timestamp, price, volume) 
             VALUES (%s, %s, %s, %s, %s)
         '''
-        values = [(ticker, date, t['t'], t['p'], t['s']) for t in trades]
+        values = [(ticker_id, date, t['t'], t['p'], t['s']) for t in trades]
         
         with self as con:
             con.execute(query_summary, values_summary)
+            con.executemany(query, values)
+            
+    
+    def store_bars(self, ticker, stat, series):
+        """ Store summary stats for trades
+        
+        Args:
+            ticker (str): ticker symbol
+            stat (str): name of summary stat
+            series (pd.Series|pd.DataFrame): One-dimensional with time as index
+        
+        """
+        
+        ticker_id = self._get_ticker_id(ticker)
+        
+        # Ensure the values are in a Series and drop NaNs.
+        series = series.squeeze().dropna()
+
+        query = f'''
+            INSERT INTO bars (ticker_id, stat, time, value) 
+            VALUES (%s, %s, %s, %s)
+        '''
+        values = [(ticker_id, stat, time, value) for (time, value) in series.iteritems()]
+        
+        with self as con:
             con.executemany(query, values)
 
             
@@ -290,10 +334,8 @@ class Database:
         
     def store_feature(self, ticker, name, series, description=None):
         
-        # Ensure the values are in a Series rather than a DataFrame and replace
-        # NaNs with None.
-        series = series.squeeze()
-        series = series.where(series.notna(), None)
+        # Ensure the values are in a Series and drop NaNs.
+        series = series.squeeze().dropna()
         
         with self as con:
             # Insert feature name and description.
