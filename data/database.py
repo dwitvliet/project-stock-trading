@@ -95,6 +95,7 @@ class Database:
                     ticker_id TINYINT UNSIGNED NOT NULL,
                     stat VARCHAR(10) NOT NULL,
                     time DATETIME NOT NULL,
+                    period CHAR(3) NOT NULL,
                     value FLOAT NOT NULL,
                     PRIMARY KEY (ticker_id, stat, time), 
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
@@ -277,6 +278,14 @@ class Database:
     
     
     def store_trades(self, ticker, date, trades):
+        """ Store trades
+        
+        Args:
+            ticker (str): ticker symbol
+            date (Date): date that trade happened
+            trades (pd.DataFrame): with columns `timestamp`, `price`, and `volume`
+        
+        """
         ticker_id = self._get_ticker_id(ticker)
         
         query_summary = f'''
@@ -289,8 +298,8 @@ class Database:
             INSERT INTO trades (ticker_id, date, timestamp, price, volume) 
             VALUES (%s, %s, %s, %s, %s)
         '''
-        values = [(ticker_id, date, t['t'], t['p'], t['s']) for t in trades]
-        
+        values = [(ticker_id, date, t.timestamp, t.price, t.volume) for t in trades.itertuples()]
+
         with self as con:
             con.execute(query_summary, values_summary)
             con.executemany(query, values)
