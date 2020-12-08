@@ -99,21 +99,25 @@ class Database:
             con.execute('''
                 CREATE TABLE IF NOT EXISTS features (
                     id INT NOT NULL AUTO_INCREMENT,
-                    name TEXT,
+                    ticker VARCHAR(10) NOT NULL,
+                    name VARCHAR(10) NOT NULL,
                     description TEXT,
-                    PRIMARY KEY (id)
+                    PRIMARY KEY (id),
+                    UNIQUE KEY (ticker, name),
+                    KEY features_join (id, ticker, name),
+                    KEY features_select_id (ticker, name, id)
                 ) ENGINE=INNODB;
             ''')
             
             con.execute('''
                 CREATE TABLE IF NOT EXISTS feature_values (
-                    time DATETIME NOT NULL,
                     feature_id INT NOT NULL,
+                    time DATETIME NOT NULL,
                     value DOUBLE NOT NULL,
-                    PRIMARY KEY (time), 
+                    PRIMARY KEY (feature_id, time), 
                     FOREIGN KEY (feature_id) REFERENCES features(id),
-                    KEY trades_select_by_time (time, feature_id, value),
-                    KEY trades_select_by_feature (feature_id, time, value)
+                    KEY trades_select_by_name (feature_id, time, value),
+                    KEY trades_select_by_time (time, feature_id, value)
                 ) ENGINE=INNODB;
             ''')
             
@@ -225,8 +229,8 @@ class Database:
     def insert_dataframe(self, table, df, replace=False):
         # Replace NaNs with None and covert dataframe to list of tuples as
         # MySQL does not understand NumPy and Pandas data structures.
-        df = df.where(df.notnull(), None)
-        values = list(df.itertuples(index=False, name=None))
+        df = df.where(df.notna(), None)
+        values = list(map(tuple, df.values))
         
         with self as con:
             con.executemany(f'''
@@ -267,3 +271,62 @@ class Database:
         with self as con:
             con.execute(query)
             return con.fetchall()
+        
+    def store_feature(self, ticker, name, series, description=None):
+        
+        # Ensure the values are in a Series rather than a DataFrame and replace
+        # NaNs with None.
+        series = series.squeeze()
+        series = series.where(series.notna(), None)
+        
+        with self as con:
+            # Insert feature name and description.
+            query = f'''
+                INSERT INTO features (ticker, name, description) 
+                VALUES (%s, %s, %s)
+                ON DUPLICATE KEY UPDATE description=description
+            '''
+            values = (ticker, name, description)
+            con.execute(query, values)
+            
+            # Get unique id of feature.
+            query = f'''
+                SELECT id
+                FROM features
+                WHERE ticker = "{ticker}"
+                AND name = "{name}"
+            '''
+            con.execute(query)
+            (feature_id, ) = con.fetchone()
+            
+            # Insert feature values.
+            query = f'''
+                INSERT INTO feature_values (feature_id, time, value) 
+                VALUES (%s, %s, %s)
+            '''
+            values = [(feature_id, time, value) for time, value in series.iteritems()]
+            con.executemany(query, values)
+        
+
+        
+
+
+
+# import time
+# credentials = {
+#   'host': 'localhost',
+#   'database': 'trades',
+#   'user': 'trades',
+#   'password': 'password',
+# }
+# db = Database(credentials)
+# query = f'''
+#     SELECT timestamp, price, volume
+#     FROM trades
+# '''
+# time_before = time.time()
+# with db as con:
+#     con.execute(query)
+#     a = con.fetchall()
+    
+# print(time.time()-time_before)
