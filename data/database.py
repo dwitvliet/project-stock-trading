@@ -87,6 +87,18 @@ class Database:
                     KEY trades_select_all (ticker_id, date, timestamp, price, volume)
                 ) ENGINE=INNODB;
             ''')
+            
+            con.execute('''
+                CREATE TABLE IF NOT EXISTS bars (
+                    ticker_id TINYINT UNSIGNED NOT NULL,
+                    variable VARCHAR(10) NOT NULL,
+                    time DATETIME NOT NULL,
+                    value FLOAT NOT NULL,
+                    PRIMARY KEY (ticker, variable, time), 
+                    FOREIGN KEY (ticker_id) REFERENCES tickers(id),
+                    KEY bars_select_all (ticker_id, variable, time, value)
+                ) ENGINE=INNODB;
+            ''')
 
             con.execute('''
                 CREATE TABLE IF NOT EXISTS holidays (
