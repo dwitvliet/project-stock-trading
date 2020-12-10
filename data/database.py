@@ -16,12 +16,16 @@ class Database:
     
     The database contains the tables:
 
-     `tickers`: Minimal details on relevant tickers stored in the database.
-     `holidays`: List of all holidays among different exchanges, including both dates closed and dates with shorter opening hours.
-     `trades`: All trades for specific tickers on specific dates. Includes date of trade, time of trade (in seconds after midnight), price of trade, and volume of trade.
-     `summary`: Summary table to quickly determine which dates and tickers exist in other tables
-     `features`: List and description of model features (and target)
-     `feature_values`: All values for features.
+    `tickers`: Minimal details on relevant tickers stored in the database.
+    `holidays`: List of all holidays among different exchanges, including both 
+        dates closed and dates with shorter opening hours.
+    `trades`: All trades for specific tickers on specific dates. Includes date 
+        of trade, time of trade (in seconds after midnight), price of trade, and
+        volume of trade.
+    `summary`: Summary table to quickly determine which dates and tickers exist
+        in other tables
+    `features`: List and description of model features (and target)
+    `feature_values`: All values for features.
     
     """
     
@@ -90,18 +94,18 @@ class Database:
                 ) ENGINE=INNODB;
             ''')
             
-            con.execute('''
-                CREATE TABLE IF NOT EXISTS bars (
-                    ticker_id TINYINT UNSIGNED NOT NULL,
-                    stat VARCHAR(10) NOT NULL,
-                    time DATETIME NOT NULL,
-                    period CHAR(3) NOT NULL,
-                    value FLOAT NOT NULL,
-                    PRIMARY KEY (ticker_id, stat, time), 
-                    FOREIGN KEY (ticker_id) REFERENCES tickers(id),
-                    KEY bars_select_all (ticker_id, stat, time, value)
-                ) ENGINE=INNODB;
-            ''')
+#             con.execute('''
+#                 CREATE TABLE IF NOT EXISTS bars (
+#                     ticker_id TINYINT UNSIGNED NOT NULL,
+#                     stat VARCHAR(10) NOT NULL,
+#                     time DATETIME NOT NULL,
+#                     period CHAR(3) NOT NULL,
+#                     value FLOAT NOT NULL,
+#                     PRIMARY KEY (ticker_id, stat, time), 
+#                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
+#                     KEY bars_select_all (ticker_id, stat, time, value)
+#                 ) ENGINE=INNODB;
+#             ''')
 
             con.execute('''
                 CREATE TABLE IF NOT EXISTS holidays (
@@ -118,7 +122,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS features (
                     id INT NOT NULL AUTO_INCREMENT,
                     ticker_id TINYINT UNSIGNED NOT NULL,
-                    name VARCHAR(10) NOT NULL,
+                    name VARCHAR(50) NOT NULL,
                     description TEXT,
                     PRIMARY KEY (id),
                     UNIQUE KEY (ticker_id, name),
@@ -305,29 +309,29 @@ class Database:
             con.executemany(query, values)
             
     
-    def store_bars(self, ticker, stat, series):
-        """ Store summary stats for trades
+#     def store_bars(self, ticker, stat, series):
+#         """ Store summary stats for trades
         
-        Args:
-            ticker (str): ticker symbol
-            stat (str): name of summary stat
-            series (pd.Series|pd.DataFrame): One-dimensional with time as index
+#         Args:
+#             ticker (str): ticker symbol
+#             stat (str): name of summary stat
+#             series (pd.Series|pd.DataFrame): One-dimensional with time as index
         
-        """
+#         """
         
-        ticker_id = self._get_ticker_id(ticker)
+#         ticker_id = self._get_ticker_id(ticker)
         
-        # Ensure the values are in a Series and drop NaNs.
-        series = series.squeeze().dropna()
+#         # Ensure the values are in a Series and drop NaNs.
+#         series = series.squeeze().dropna()
 
-        query = f'''
-            INSERT INTO bars (ticker_id, stat, time, value) 
-            VALUES (%s, %s, %s, %s)
-        '''
-        values = [(ticker_id, stat, time, value) for (time, value) in series.iteritems()]
+#         query = f'''
+#             INSERT INTO bars (ticker_id, stat, time, value) 
+#             VALUES (%s, %s, %s, %s)
+#         '''
+#         values = [(ticker_id, stat, time, value) for (time, value) in series.iteritems()]
         
-        with self as con:
-            con.executemany(query, values)
+#         with self as con:
+#             con.executemany(query, values)
 
             
     def get_trades(self, ticker, date):
