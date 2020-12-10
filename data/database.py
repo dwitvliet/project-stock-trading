@@ -236,6 +236,26 @@ class Database:
         return dates
 
     
+    def get_open_hours(self, dates, exchange):
+        """ Determine open operating hours of exchange for a range of dates.
+        
+        Uses the extended hour by Robinhood/Alpaca, which includes 30 minutes of
+        pre-market and 2 hours of post-market.
+        
+        """
+
+        holidays = dict(self.get_holidays(exchange))
+        
+        hours = {}
+        for date in dates:
+            halfday = (date in holidays and holidays[date] == 'half')
+            start_time = datetime.time(9, 0) 
+            close_time = datetime.time(15 if halfday else 18, 0)
+            hours[date] = (start_time, close_time)
+            
+        return hours
+    
+    
     def get_ticker_details(self, ticker):
         query = f'''
             SELECT name, sector, exchange
@@ -335,15 +355,33 @@ class Database:
 
             
     def get_trades(self, ticker, date):
+        """ Get all trades for a ticker for a specific date.
+        
+        The time of the trade is converted from Unix timestamp to datetime
+        in the local timezome of the exchange (Eastern time).
+        
+        """
+        
+        ticker_id = self._get_ticker_id(ticker)
+        
         query = f'''
             SELECT timestamp, price, volume
             FROM trades
-            WHERE ticker = "{ticker}"
+            WHERE ticker_id = "{ticker_id}"
             AND date = "{date}"
         '''
         with self as con:
             con.execute(query)
-            return con.fetchall()
+            result = con.fetchall()
+            
+        trades = pd.DataFrame(result, columns=['timestamp', 'price', 'volume'])
+        trades['time'] = pd.to_datetime(trades['timestamp']) \
+            .dt.tz_localize('UTC') \
+            .dt.tz_convert('America/New_York') \
+            .dt.tz_localize(None)
+        return trades[['time', 'price', 'volume']]
+    
+        
         
     def store_feature(self, ticker, name, series, description=None):
         
