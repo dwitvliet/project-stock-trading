@@ -19,7 +19,7 @@ def weighted_mean(df, values=None, weights=None, groupby=None):
 
     df = df.copy()
     grouped = df.groupby(groupby)
-    df['weighted_average'] = df[values] / grouped[values].transform('sum') * df[weights]
+    df['weighted_average'] = df[values] / grouped[weights].transform('sum') * df[weights]
     return grouped['weighted_average'].sum()
 
 
