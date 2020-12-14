@@ -76,7 +76,7 @@ class API_Manager:
             url = f'/v2/ticks/stocks/nbbo/{ticker}/{date}'
         else:
             url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
-        print(url)
+        
         params = {
             'timestamp': start_time,
             'limit': TRADES_PER_REQUEST
