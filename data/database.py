@@ -79,7 +79,7 @@ class Database:
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id)
                 ) ENGINE=INNODB;
             ''')
-
+            
             con.execute('''
                 CREATE TABLE IF NOT EXISTS trades (
                     id INT NOT NULL AUTO_INCREMENT,
@@ -93,19 +93,6 @@ class Database:
                     KEY trades_select_all (ticker_id, date, timestamp, price, volume)
                 ) ENGINE=INNODB;
             ''')
-            
-#             con.execute('''
-#                 CREATE TABLE IF NOT EXISTS bars (
-#                     ticker_id TINYINT UNSIGNED NOT NULL,
-#                     stat VARCHAR(10) NOT NULL,
-#                     time DATETIME NOT NULL,
-#                     period CHAR(3) NOT NULL,
-#                     value FLOAT NOT NULL,
-#                     PRIMARY KEY (ticker_id, stat, time), 
-#                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
-#                     KEY bars_select_all (ticker_id, stat, time, value)
-#                 ) ENGINE=INNODB;
-#             ''')
 
             con.execute('''
                 CREATE TABLE IF NOT EXISTS holidays (
@@ -328,31 +315,6 @@ class Database:
             con.execute(query_summary, values_summary)
             con.executemany(query, values)
             
-    
-#     def store_bars(self, ticker, stat, series):
-#         """ Store summary stats for trades
-        
-#         Args:
-#             ticker (str): ticker symbol
-#             stat (str): name of summary stat
-#             series (pd.Series|pd.DataFrame): One-dimensional with time as index
-        
-#         """
-        
-#         ticker_id = self._get_ticker_id(ticker)
-        
-#         # Ensure the values are in a Series and drop NaNs.
-#         series = series.squeeze().dropna()
-
-#         query = f'''
-#             INSERT INTO bars (ticker_id, stat, time, value) 
-#             VALUES (%s, %s, %s, %s)
-#         '''
-#         values = [(ticker_id, stat, time, value) for (time, value) in series.iteritems()]
-        
-#         with self as con:
-#             con.executemany(query, values)
-
             
     def get_trades(self, ticker, date):
         """ Get all trades for a ticker for a specific date.
