@@ -119,3 +119,6 @@ class APIManager:
         trades.columns = column_names
 
         return trades
+
+    def get_daily_quotes(self, ticker, date):
+        return self.get_daily_trades(ticker, date, quotes=True)
