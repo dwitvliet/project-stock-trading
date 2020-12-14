@@ -6,7 +6,7 @@ import logging
 import pandas as pd
 
 
-class API_Manager:
+class APIManager:
     """ Fetch market data and historical data from the Polygon API.
     
     Talks to the Polygon API, fetching information on tickers and trades. For 
@@ -26,11 +26,17 @@ class API_Manager:
         self._recent_requests = []
         
     def _count_recent_requests(self):
-        self._recent_requests = [r for r in self._recent_requests if time.time() - r < 60]
+        self._recent_requests = [
+            r for r in self._recent_requests
+            if time.time() - r < 60
+        ]
         return len(self._recent_requests)
         
-    def _request(self, url, params={}, attempts_left=None):
-        
+    def _request(self, url, params=None, attempts_left=None):
+
+        if params is None:
+            params = {}
+
         if attempts_left is None:
             attempts_left = self.MAX_ATTEMPTS - 1
         
@@ -56,14 +62,12 @@ class API_Manager:
         )
         time.sleep(5)
         return self._request(url, params, attempts_left-1)
-    
-    
+
     def get_ticker_details(self, ticker):
         # https://polygon.io/docs/get_v1_meta_symbols__stocksTicker__company_anchor
         url = f'/v1/meta/symbols/{ticker}/company'
         return self._request(url)
-    
-    
+
     def _request_batch(self, url, limit, timestamp=0):
         
         params = {
@@ -85,12 +89,11 @@ class API_Manager:
             result.extend(self._request_batch(url, limit, last_timestamp))
         
         return result
-    
-    
-    def get_daily_trades(self, ticker, date, quotes=False, start_time=0):
+
+    def get_daily_trades(self, ticker, date, quotes=False):
         # https://polygon.io/docs/get_v2_ticks_stocks_trades__ticker___date__anchor
         
-        TRADES_PER_REQUEST = 50000
+        trades_per_request = 50000
         
         if type(date) == datetime.date:
             date = date.strftime('%Y-%m-%d')
@@ -100,18 +103,19 @@ class API_Manager:
         else:
             url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
                 
-        trades = self._request_batch(url, TRADES_PER_REQUEST)
+        trades = self._request_batch(url, trades_per_request)
         
         if quotes:
             keys_to_keep = ['t', 'P', 'S', 'p', 's']
-            column_names = ['timestamp', 'ask_price', 'ask_volume', 'bid_price', 'bid_volume']
+            column_names = [
+                'timestamp', 'ask_price', 'ask_volume',
+                'bid_price', 'bid_volume'
+            ]
         else:
             keys_to_keep = ['t', 'p', 's']
             column_names = ['timestamp', 'price', 'volume']
-        
-        
+
         trades = pd.DataFrame(trades)[keys_to_keep]
         trades.columns = column_names
-        
 
         return trades
