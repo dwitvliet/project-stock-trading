@@ -64,6 +64,29 @@ class API_Manager:
         return self._request(url)
     
     
+    def _request_batch(self, url, limit, timestamp=0):
+        
+        params = {
+            'timestamp': timestamp,
+            'limit': limit
+        }
+
+        response = self._request(url, params)
+        if response is None:
+            return None
+        
+        # Exclude first trade in responses as it was already present in the 
+        # previous request.
+        result = response['results'][int(timestamp > 0):]
+
+        # Repeat requests until all available data has been received.
+        last_timestamp = result[-1]['t']
+        if response['results_count'] >= limit:
+            result.extend(self._request_batch(url, limit, last_timestamp))
+        
+        return result
+    
+    
     def get_daily_trades(self, ticker, date, quotes=False, start_time=0):
         # https://polygon.io/docs/get_v2_ticks_stocks_trades__ticker___date__anchor
         
@@ -76,22 +99,19 @@ class API_Manager:
             url = f'/v2/ticks/stocks/nbbo/{ticker}/{date}'
         else:
             url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
+                
+        trades = self._request_batch(url, TRADES_PER_REQUEST)
         
-        params = {
-            'timestamp': start_time,
-            'limit': TRADES_PER_REQUEST
-        }
-
-        response = self._request(url, params)
-        if response is None:
-            return None
-
-        # Exclude first trade in responses as it was already present in the 
-        # previous request.
-        trades = response['results'][int(start_time > 0):]
-
-        # Repeat requests until all daily trades have been fetched.
-        if response['results_count'] >= TRADES_PER_REQUEST:
-            trades.extend(self.get_daily_trades(ticker, date, quotes=quotes, start_time=trades[-1]['t']))
+        if quotes:
+            keys_to_keep = ['t', 'p', 's', 'P', 'S']
+            column_names = ['timestamp', 'bid_price', 'bid_volume', 'ask_price', 'ask_volume']
+        else:
+            keys_to_keep = ['t', 'p', 's']
+            column_names = ['timestamp', 'price', 'volume']
         
+        
+        trades = pd.DataFrame(trades)[keys_to_keep]
+        trades.columns = column_names
+        
+
         return trades
