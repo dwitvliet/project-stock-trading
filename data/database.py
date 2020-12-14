@@ -40,7 +40,9 @@ class Database:
         return self
     
     def __enter__(self):
-        self._connection = mysql.connector.connect(**self._credentials, autocommit=True)
+        self._connection = mysql.connector.connect(
+            **self._credentials, autocommit=True
+        )
         self._cursor = self._connection.cursor(**self._cursor_kwargs)
         return self._cursor
     
@@ -88,7 +90,9 @@ class Database:
                     volume INT NOT NULL,
                     PRIMARY KEY (id),
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
-                    KEY trades_select_all (ticker_id, date, timestamp, price, volume)
+                    KEY trades_select_all (
+                        ticker_id, date, timestamp, price, volume
+                    )
                 ) ENGINE=INNODB;
             ''')
             
@@ -104,7 +108,10 @@ class Database:
                     bid_volume INT NOT NULL,
                     PRIMARY KEY (id),
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
-                    KEY quotes_select_all (ticker_id, date, timestamp, ask_price, ask_volume, bid_price, bid_volume)
+                    KEY quotes_select_all (
+                        ticker_id, date, timestamp, ask_price, ask_volume, 
+                        bid_price, bid_volume
+                    )
                 ) ENGINE=INNODB;
             ''')
 
@@ -146,7 +153,9 @@ class Database:
             ''')
             
         # Populate holiday table.
-        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'holidays.csv')
+        file_path = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), 'holidays.csv'
+        )
         holidays = pd.read_csv(file_path)
         holidays = pd.melt(
             holidays, 
@@ -220,7 +229,8 @@ class Database:
         open_dates = []
     
         # Get holidays.
-        holidays = [date for date, hours in self.get_holidays(exchange, date_from, date_to) if hours == 'closed']
+        holidays = self.get_holidays(exchange, date_from, date_to)
+        holidays = [date for date, hours in holidays if hours == 'closed']
             
         for date in pd.date_range(date_from, date_to):
             # Skip Saturdays and Sundays.
@@ -308,7 +318,8 @@ class Database:
         Args:
             ticker (str): ticker symbol
             date (Date): date that trade happened
-            trades (pd.DataFrame): with columns `timestamp`, `price`, and `volume`
+            trades (pd.DataFrame): with columns `timestamp`, `price`, and
+                `volume`
         
         """
         ticker_id = self._get_ticker_id(ticker)
@@ -362,7 +373,10 @@ class Database:
         
         if quotes:
             table_name = 'quotes'
-            columns = ['timestamp', 'ask_price', 'ask_volume', 'bid_price', 'bid_volume']
+            columns = [
+                'timestamp', 'ask_price', 'ask_volume',
+                'bid_price', 'bid_volume'
+            ]
         else:
             table_name = 'trades'
             columns = ['timestamp', 'price', 'volume']
@@ -417,7 +431,11 @@ class Database:
                 INSERT INTO feature_values (feature_id, time, value) 
                 VALUES (%s, %s, %s)
             '''
-            values = [(feature_id, time, value) for time, value in series.iteritems()]
+            values = [
+                (feature_id, time, value)
+                for time, value
+                in series.iteritems()
+            ]
             con.executemany(query, values)
         
 #
