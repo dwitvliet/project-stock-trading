@@ -34,8 +34,7 @@ class Database:
         self._connection = None
         self._cursor_kwargs = {}
         self._create_tables()
-    
-    
+
     def __call__(self, **kwargs):
         self._cursor_kwargs = kwargs
         return self
@@ -53,8 +52,7 @@ class Database:
         self._cursor_kwargs.clear()
         if exc_type is not None:
             logging.error(exc_type)
-        
-        
+
     def _create_tables(self):
 
         with self as con:
@@ -148,8 +146,8 @@ class Database:
             ''')
             
         # Populate holiday table.
-        fpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'holidays.csv')
-        holidays = pd.read_csv(fpath)
+        file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'holidays.csv')
+        holidays = pd.read_csv(file_path)
         holidays = pd.melt(
             holidays, 
             id_vars=['date', 'day'], 
@@ -161,8 +159,23 @@ class Database:
         holidays = holidays.dropna()
         holidays['exchange'] = holidays['exchange'].str.upper()
 
-        self.insert_dataframe('holidays', holidays, replace=True)
-        
+        self._insert_dataframe('holidays', holidays, replace=True)
+
+    def _insert_dataframe(self, table, df, replace=False):
+        # Replace NaNs with None and covert dataframe to list of tuples as
+        # MySQL does not understand NumPy and Pandas data structures.
+        df = df.where(df.notna(), None)
+        values = list(map(tuple, df.values))
+
+        with self as con:
+            con.executemany(f'''
+                {'REPLACE' if replace else 'INSERT'} INTO {table} (
+                    {','.join(df.columns)}
+                )
+                VALUES (
+                    {','.join(['%s'] * len(df.columns))}
+                )
+            ''', values)
 
     @functools.lru_cache(maxsize=None)
     def _get_ticker_id(self, ticker):
@@ -176,7 +189,6 @@ class Database:
             (ticker_id, ) = con.fetchone()
 
         return ticker_id
-        
 
     def get_holidays(self, exchange, date_from=None, date_to=None):
         query = f'''
@@ -191,8 +203,7 @@ class Database:
         with self as con:
             con.execute(query)
             return con.fetchall()
-        
-        
+
     def get_open_dates(self, exchange, date_from, date_to):
         """
         Get list of dates within range where exchange is open. Weekends and
@@ -224,8 +235,26 @@ class Database:
             open_dates.append(date.date())
 
         return open_dates
-                    
-    
+
+    def get_open_hours(self, dates, exchange):
+        """ Determine open operating hours of exchange for a range of dates.
+
+        Uses the extended hour by Robinhood/Alpaca, which includes 30 minutes of
+        pre-market and 2 hours of post-market.
+
+        """
+
+        holidays = dict(self.get_holidays(exchange))
+
+        hours = {}
+        for date in dates:
+            half_day = (date in holidays and holidays[date] == 'half')
+            start_time = datetime.time(9, 0)
+            close_time = datetime.time(15 if half_day else 18, 0)
+            hours[date] = (start_time, close_time)
+
+        return hours
+
     def get_stored_dates(self, table, ticker):
         query = f'''
             SELECT date
@@ -238,27 +267,21 @@ class Database:
             dates = [row[0] for row in con.fetchall()]
         return dates
 
-    
-    def get_open_hours(self, dates, exchange):
-        """ Determine open operating hours of exchange for a range of dates.
-        
-        Uses the extended hour by Robinhood/Alpaca, which includes 30 minutes of
-        pre-market and 2 hours of post-market.
-        
-        """
+    def store_ticker_details(self, details):
+        query = f'''
+            INSERT INTO tickers (ticker, name, sector, exchange) 
+            VALUES (%s, %s, %s, %s)
+        '''
+        values = (
+            details['symbol'],
+            details['name'],
+            details['sector'],
+            details['exchangeSymbol'],
+        )
+        with self as con:
+            con.execute(query, values)
+        return self.get_ticker_details(details['symbol'])
 
-        holidays = dict(self.get_holidays(exchange))
-        
-        hours = {}
-        for date in dates:
-            halfday = (date in holidays and holidays[date] == 'half')
-            start_time = datetime.time(9, 0) 
-            close_time = datetime.time(15 if halfday else 18, 0)
-            hours[date] = (start_time, close_time)
-            
-        return hours
-    
-    
     def get_ticker_details(self, ticker):
         query = f'''
             SELECT name, sector, exchange
@@ -269,39 +292,6 @@ class Database:
             con.execute(query)
             details = con.fetchall()
         return details[0] if details else None
-    
-    
-    def store_ticker_details(self, details):
-        query = f'''
-            INSERT INTO tickers (ticker, name, sector, exchange) 
-            VALUES (%s, %s, %s, %s)
-        '''
-        values = (
-            details['symbol'], 
-            details['name'], 
-            details['sector'], 
-            details['exchangeSymbol'],
-        )
-        with self as con:
-            con.execute(query, values)
-        return self.get_ticker_details(details['symbol'])
-    
-    
-    def insert_dataframe(self, table, df, replace=False):
-        # Replace NaNs with None and covert dataframe to list of tuples as
-        # MySQL does not understand NumPy and Pandas data structures.
-        df = df.where(df.notna(), None)
-        values = list(map(tuple, df.values))
-        
-        with self as con:
-            con.executemany(f'''
-                {'REPLACE' if replace else 'INSERT'} INTO {table} (
-                    {','.join(df.columns)}
-                )
-                VALUES (
-                    {','.join(['%s'] * len(df.columns))}
-                )
-            ''', values)
     
     def _store_summary(self, table_name, ticker_id, date):
         query = f'''
@@ -335,7 +325,6 @@ class Database:
         with self as con:
             con.executemany(query, values)
 
-            
     def store_quotes(self, ticker, date, quotes):
         """ Store quotes
         
@@ -363,13 +352,12 @@ class Database:
 
         with self as con:
             con.executemany(query, values)
-            
 
     def get_trades(self, ticker, date, quotes=False):
         """ Get all trades/quotes for a ticker for a specific date. 
         
         The time is converted from a Unix timestamp to to datetime in the local
-        timezome of NYSE and Nasdaq (Eastern time).
+        timezone of NYSE and Nasdaq (Eastern time).
         """
         
         if quotes:
@@ -398,8 +386,7 @@ class Database:
     
     def get_quotes(self, *args):
         return self.get_trades(*args, quotes=True)
-        
-        
+
     def store_feature(self, ticker, name, series, description=None):
         
         # Ensure the values are in a Series and drop NaNs.
@@ -433,11 +420,11 @@ class Database:
             values = [(feature_id, time, value) for time, value in series.iteritems()]
             con.executemany(query, values)
         
-
-        
-
-
-
+#
+#
+#
+#
+#
 # import time
 # credentials = {
 #   'host': 'localhost',
