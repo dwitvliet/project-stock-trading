@@ -5,5 +5,8 @@ __pycache__/
 # Jupyter.
 .ipynb_checkpoints
 
+# PyChard
+.idea
+
 # Config files.
 config.py
