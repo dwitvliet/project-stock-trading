@@ -79,7 +79,7 @@ class Database:
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id)
                 ) ENGINE=INNODB;
             ''')
-            
+
             con.execute('''
                 CREATE TABLE IF NOT EXISTS trades (
                     id INT NOT NULL AUTO_INCREMENT,
@@ -91,6 +91,22 @@ class Database:
                     PRIMARY KEY (id),
                     FOREIGN KEY (ticker_id) REFERENCES tickers(id),
                     KEY trades_select_all (ticker_id, date, timestamp, price, volume)
+                ) ENGINE=INNODB;
+            ''')
+            
+            con.execute('''
+                CREATE TABLE IF NOT EXISTS quotes (
+                    id INT NOT NULL AUTO_INCREMENT,
+                    ticker_id TINYINT UNSIGNED NOT NULL,
+                    date DATE NOT NULL,
+                    timestamp BIGINT NOT NULL,
+                    ask_price FLOAT NOT NULL,
+                    ask_volume INT NOT NULL,
+                    bid_price FLOAT NOT NULL,
+                    bid_volume INT NOT NULL,
+                    PRIMARY KEY (id),
+                    FOREIGN KEY (ticker_id) REFERENCES tickers(id),
+                    KEY quotes_select_all (ticker_id, date, timestamp, ask_price, ask_volume, bid_price, bid_volume)
                 ) ENGINE=INNODB;
             ''')
 
@@ -287,6 +303,14 @@ class Database:
                 )
             ''', values)
     
+    def _store_summary(self, table_name, ticker_id, date):
+        query = f'''
+            INSERT INTO summary (table_name, ticker_id, date) 
+            VALUES (%s, %s, %s)
+        '''
+        values = (table_name, ticker_id, date)
+        with self as con:
+            con.execute(query, values)
     
     def store_trades(self, ticker, date, trades):
         """ Store trades
@@ -298,12 +322,7 @@ class Database:
         
         """
         ticker_id = self._get_ticker_id(ticker)
-        
-        query_summary = f'''
-            INSERT INTO summary (table_name, ticker_id, date) 
-            VALUES (%s, %s, %s)
-        '''
-        values_summary = ('trades', ticker_id, date)
+        self._store_summary('trades', ticker_id, date)
         
         query = f'''
             INSERT INTO trades (ticker_id, date, timestamp, price, volume) 
@@ -312,7 +331,35 @@ class Database:
         values = [(ticker_id, date, t.timestamp, t.price, t.volume) for t in trades.itertuples()]
 
         with self as con:
-            con.execute(query_summary, values_summary)
+            con.executemany(query, values)
+
+            
+    def store_quotes(self, ticker, date, quotes):
+        """ Store quotes
+        
+        Args:
+            ticker (str): ticker symbol
+            date (Date): date that trade happened
+            quotes (pd.DataFrame): with columns `timestamp`, `ask_price`, 
+                `ask_volume`, `bid_price`, and `bid_volume`
+        
+        """
+        ticker_id = self._get_ticker_id(ticker)
+        self._store_summary('quotes', ticker_id, date)
+        
+        query = f'''
+            INSERT INTO quotes (
+                ticker_id, date, timestamp, 
+                ask_price, ask_volume, bid_price, bid_volume
+            ) 
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        '''
+        values = [(
+            ticker_id, date, t.timestamp, 
+            t.ask_price, t.ask_volume, t.bid_price, t.bid_volume
+        ) for t in quotes.itertuples()]
+
+        with self as con:
             con.executemany(query, values)
             
             

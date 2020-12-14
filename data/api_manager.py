@@ -103,8 +103,8 @@ class API_Manager:
         trades = self._request_batch(url, TRADES_PER_REQUEST)
         
         if quotes:
-            keys_to_keep = ['t', 'p', 's', 'P', 'S']
-            column_names = ['timestamp', 'bid_price', 'bid_volume', 'ask_price', 'ask_volume']
+            keys_to_keep = ['t', 'P', 'S', 'p', 's']
+            column_names = ['timestamp', 'ask_price', 'ask_volume', 'bid_price', 'bid_volume']
         else:
             keys_to_keep = ['t', 'p', 's']
             column_names = ['timestamp', 'price', 'volume']
