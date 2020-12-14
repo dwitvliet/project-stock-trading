@@ -32,7 +32,7 @@ class API_Manager:
     def _request(self, url, params={}, attempts_left=None):
         
         if attempts_left is None:
-            attempts_left = self.MAX_ATTEMPTS
+            attempts_left = self.MAX_ATTEMPTS - 1
         
         while self._count_recent_requests() >= self.MAX_REQUEST_PER_MINUTE:
             time.sleep(self.STALL_TIME_UPON_MAX_REQUESTS)
@@ -47,6 +47,7 @@ class API_Manager:
                 return json
         
         if attempts_left == 0:
+            logging.info(f'Exited with status code {result.status_code}.')
             return None
         
         logging.error(
@@ -63,15 +64,19 @@ class API_Manager:
         return self._request(url)
     
     
-    def get_daily_trades(self, ticker, date, start_time=0):
+    def get_daily_trades(self, ticker, date, quotes=False, start_time=0):
         # https://polygon.io/docs/get_v2_ticks_stocks_trades__ticker___date__anchor
         
         TRADES_PER_REQUEST = 50000
         
         if type(date) == datetime.date:
             date = date.strftime('%Y-%m-%d')
-            
-        url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
+        
+        if quotes:
+            url = f'/v2/ticks/stocks/nbbo/{ticker}/{date}'
+        else:
+            url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
+        print(url)
         params = {
             'timestamp': start_time,
             'limit': TRADES_PER_REQUEST
@@ -87,6 +92,6 @@ class API_Manager:
 
         # Repeat requests until all daily trades have been fetched.
         if response['results_count'] >= TRADES_PER_REQUEST:
-            trades.extend(self.get_daily_trades(ticker, date, start_time=trades[-1]['t']))
+            trades.extend(self.get_daily_trades(ticker, date, quotes=quotes, start_time=trades[-1]['t']))
         
         return trades
