@@ -328,7 +328,9 @@ class Database:
             INSERT INTO trades (ticker_id, date, timestamp, price, volume) 
             VALUES (%s, %s, %s, %s, %s)
         '''
-        values = [(ticker_id, date, t.timestamp, t.price, t.volume) for t in trades.itertuples()]
+        values = [(
+            ticker_id, date, t.timestamp, t.price, t.volume
+        ) for t in trades.itertuples()]
 
         with self as con:
             con.executemany(query, values)
@@ -362,34 +364,40 @@ class Database:
         with self as con:
             con.executemany(query, values)
             
-            
-    def get_trades(self, ticker, date):
-        """ Get all trades for a ticker for a specific date.
+
+    def get_trades(self, ticker, date, quotes=False):
+        """ Get all trades/quotes for a ticker for a specific date. 
         
-        The time of the trade is converted from Unix timestamp to datetime
-        in the local timezome of the exchange (Eastern time).
-        
+        The time is converted from a Unix timestamp to to datetime in the local
+        timezome of NYSE and Nasdaq (Eastern time).
         """
         
-        ticker_id = self._get_ticker_id(ticker)
-        
+        if quotes:
+            table_name = 'quotes'
+            columns = ['timestamp', 'ask_price', 'ask_volume', 'bid_price', 'bid_volume']
+        else:
+            table_name = 'trades'
+            columns = ['timestamp', 'price', 'volume']
+            
         query = f'''
-            SELECT timestamp, price, volume
-            FROM trades
-            WHERE ticker_id = "{ticker_id}"
+            SELECT {', '.join(columns)}
+            FROM {table_name}
+            WHERE ticker_id = "{self._get_ticker_id(ticker)}"
             AND date = "{date}"
         '''
         with self as con:
             con.execute(query)
             result = con.fetchall()
             
-        trades = pd.DataFrame(result, columns=['timestamp', 'price', 'volume'])
-        trades['time'] = pd.to_datetime(trades['timestamp']) \
+        df = pd.DataFrame(result, columns=columns)
+        df['time'] = pd.to_datetime(df['timestamp']) \
             .dt.tz_localize('UTC') \
             .dt.tz_convert('America/New_York') \
             .dt.tz_localize(None)
-        return trades[['time', 'price', 'volume']]
+        return df.drop('timestamp', axis=1)
     
+    def get_quotes(self, *args):
+        return self.get_trades(*args, quotes=True)
         
         
     def store_feature(self, ticker, name, series, description=None):
