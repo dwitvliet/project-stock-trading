@@ -399,7 +399,9 @@ class Database:
         return df.drop('timestamp', axis=1)
     
     def get_quotes(self, *args):
-        return self.get_trades(*args, quotes=True)
+        quotes = self.get_trades(*args, quotes=True)
+        quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
+        return quotes
 
     def store_feature(self, ticker, name, series, description=None):
         
