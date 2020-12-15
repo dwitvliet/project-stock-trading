@@ -57,12 +57,19 @@ def get_open_dates(exchange, date_from, date_to):
     return open_dates
 
 
-def fetch_and_store_trades(ticker, date_from, date_to):
+def fetch_and_store_trades(ticker, date_from, date_to, verbose=False):
     exchange = exchange_for_ticker(ticker)
     dates_with_trades = get_open_dates(exchange, date_from, date_to)
     dates_stored = db.get_stored_dates('trades', ticker)
 
     dates_to_fetch = [d for d in dates_with_trades if d not in dates_stored]
+
+    if len(dates_to_fetch) == 0:
+        if verbose:
+            logging.info(
+                f'All trades from {date_from} to {date_to} are already stored.'
+            )
+        return
 
     logging.info(f'Fetching {len(dates_to_fetch)} day(s) of {ticker} trades.')
     for date in dates_to_fetch:
@@ -76,7 +83,41 @@ def fetch_and_store_trades(ticker, date_from, date_to):
 
         logging.info(
             f'{ticker} {date} - '
-            f'fetch time: {int(round(time_before_store - time_before_fetch))}s, '
-            f'store time: {int(round(time.time() - time_before_store))}s'
+            f'fetch: {int(round(time_before_store - time_before_fetch))}s, '
+            f'store: {int(round(time.time() - time_before_store))}s'
         )
+
+
+@functools.lru_cache(maxsize=None)
+def get_trades(ticker, date_from, date_to=None):
+    """ Gets all trades for a range of dates.
+
+    Fetches the dates from the database. If they do not exist, they are first
+    fetched from the API and stored.
+
+    Args:
+        ticker (str): Ticker symbol.
+        date_from (Date): First date in range to get.
+        date_to (Date, optional): Last date in range to get.
+
+    Returns:
+        pd.DataFrame
+    """
+
+    if date_to is None:
+        date_to = date_from
+
+    fetch_and_store_trades(ticker, date_from, date_to)
+
+    exchange = exchange_for_ticker(ticker)
+    dates_with_trades = get_open_dates(exchange, date_from, date_to)
+    if len(dates_with_trades) == 0:
+        logging.info('There are no trades for the selected date(s).')
+        return pd.DataFrame(columns=['time', 'price', 'volume'])
+
+    trades = []
+    for date in dates_with_trades:
+        trades.append(db.get_trades(ticker, date))
+
+    return pd.concat(trades)
 
