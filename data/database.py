@@ -213,39 +213,6 @@ class Database:
             con.execute(query)
             return con.fetchall()
 
-    def get_open_dates(self, exchange, date_from, date_to):
-        """
-        Get list of dates within range where exchange is open. Weekends and
-        holidays are excluded.
-
-        Args:
-            exchange (str): exchange symbol
-            date_from (date|str): first date in range (inclusive)
-            date_to (date|str): last date in range (inclusive)
-        Returns:
-            [date, ..]
-        """
-        
-        open_dates = []
-    
-        # Get holidays.
-        holidays = self.get_holidays(exchange, date_from, date_to)
-        holidays = [date for date, hours in holidays if hours == 'closed']
-            
-        for date in pd.date_range(date_from, date_to):
-            # Skip Saturdays and Sundays.
-            if date.weekday() >= 5:
-                continue
-            # Skip holidays where the exchange is closed.
-            if date in holidays:
-                continue
-            # Skip today and future days.
-            if (datetime.datetime.now() - date).days <= 0:
-                continue
-            open_dates.append(date.date())
-
-        return open_dates
-
     def get_open_hours(self, dates, exchange):
         """ Determine open operating hours of exchange for a range of dates.
 
