@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 def profits(bars, price='price', prediction='prediction', buy_cost=0):
@@ -44,3 +45,39 @@ def profits(bars, price='price', prediction='prediction', buy_cost=0):
     print('Total buys:', len(gains_per_epoch))
     print('Buys with loss:', sum(gains_per_epoch < 0))
     print('Passive gain:', passive_gain)
+
+
+def plot_buy_sell(bars, columns, prediction='prediction'):
+    """ Make a line plot with buys and sells shaded.
+
+    Args:
+        bars (pd.DataFrame): The data containing t
+        columns (str or list of str): The columns to plot on the y-axis.
+        prediction (str, option: The column containing buy/sell predictions.
+
+    """
+
+    if type(columns) not in (list, tuple):
+        columns = [columns]
+
+    plots = len(columns)
+
+    fig, axes = plt.subplots(plots, 1, figsize=(9, plots * 3))
+
+    for column, ax in zip(columns, axes):
+        bars[column].plot.line(ax=ax, ylabel=column)
+
+    prediction_runs = bars[prediction].groupby(
+        (bars[prediction].shift() != bars[prediction]).cumsum()
+    )
+    predictions = prediction_runs.head(1)
+    pred_starts = prediction_runs.head(1).index
+    pred_ends = prediction_runs.tail(1).index
+    for prediction, start, end in zip(predictions, pred_starts, pred_ends):
+        for ax in axes:
+            if prediction == 'buy':
+                ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
+            if prediction == 'sell':
+                ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
+
+    plt.show()
