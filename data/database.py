@@ -279,7 +279,7 @@ class Database:
         with self as con:
             con.execute(query, values)
     
-    def store_trades(self, ticker, date, trades):
+    def store_trades(self, ticker, date, trades, data_type='trades'):
         """ Store trades
         
         Args:
@@ -287,46 +287,25 @@ class Database:
             date (Date): date that trade happened
             trades (pd.DataFrame): with columns `timestamp`, `price`, and
                 `volume`
+            data_type (str, 'trades' or 'quotes'): The type or data to fetch.
         
         """
         ticker_id = self._get_ticker_id(ticker)
-        self._store_summary('trades', ticker_id, date)
-        
-        query = f'''
-            INSERT INTO trades (ticker_id, date, timestamp, price, volume) 
-            VALUES (%s, %s, %s, %s, %s)
-        '''
-        values = [(
-            ticker_id, date, t.timestamp, t.price, t.volume
-        ) for t in trades.itertuples()]
+        self._store_summary(data_type, ticker_id, date)
 
-        with self as con:
-            con.executemany(query, values)
+        if data_type == 'trades':
+            colums = ['timestamp', 'price', 'volume']
+        else:  # quotes
+            colums = [
+                'timestamp', 'ask_price', 'ask_volume',
+                'bid_price', 'bid_volume'
+            ]
 
-    def store_quotes(self, ticker, date, quotes):
-        """ Store quotes
-        
-        Args:
-            ticker (str): ticker symbol
-            date (Date): date that trade happened
-            quotes (pd.DataFrame): with columns `timestamp`, `ask_price`, 
-                `ask_volume`, `bid_price`, and `bid_volume`
-        
-        """
-        ticker_id = self._get_ticker_id(ticker)
-        self._store_summary('quotes', ticker_id, date)
-        
         query = f'''
-            INSERT INTO quotes (
-                ticker_id, date, timestamp, 
-                ask_price, ask_volume, bid_price, bid_volume
-            ) 
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO {data_type} (ticker_id, date, {', '.join(colums)}) 
+            VALUES (%s, %s, {', '.join(['%s' for _ in colums])})
         '''
-        values = [(
-            ticker_id, date, t.timestamp, 
-            t.ask_price, t.ask_volume, t.bid_price, t.bid_volume
-        ) for t in quotes.itertuples()]
+        values = [(ticker_id, date, *t[1:]) for t in trades[colums].itertuples()]
 
         with self as con:
             con.executemany(query, values)
@@ -364,11 +343,6 @@ class Database:
             .dt.tz_convert('America/New_York') \
             .dt.tz_localize(None)
         return df.drop('timestamp', axis=1)
-    
-    def get_quotes(self, *args):
-        quotes = self.get_trades(*args, quotes=True)
-        quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
-        return quotes
 
     def store_feature(self, ticker, name, series, description=None):
         

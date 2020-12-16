@@ -90,35 +90,32 @@ class APIManager:
         
         return result
 
-    def get_daily_trades(self, ticker, date, quotes=False):
+    def get_daily_trades(self, ticker, date, data_type='trades'):
         # https://polygon.io/docs/get_v2_ticks_stocks_trades__ticker___date__anchor
         
         trades_per_request = 50000
         
         if type(date) == datetime.date:
             date = date.strftime('%Y-%m-%d')
-        
-        if quotes:
-            url = f'/v2/ticks/stocks/nbbo/{ticker}/{date}'
-        else:
+
+        if data_type == 'trades':
             url = f'/v2/ticks/stocks/trades/{ticker}/{date}'
+        else:  # quotes
+            url = f'/v2/ticks/stocks/nbbo/{ticker}/{date}'
                 
         trades = self._request_batch(url, trades_per_request)
-        
-        if quotes:
+
+        if data_type == 'trades':
+            keys_to_keep = ['t', 'p', 's']
+            column_names = ['timestamp', 'price', 'volume']
+        else:  # quotes
             keys_to_keep = ['t', 'P', 'S', 'p', 's']
             column_names = [
                 'timestamp', 'ask_price', 'ask_volume',
                 'bid_price', 'bid_volume'
             ]
-        else:
-            keys_to_keep = ['t', 'p', 's']
-            column_names = ['timestamp', 'price', 'volume']
 
         trades = pd.DataFrame(trades)[keys_to_keep]
         trades.columns = column_names
 
         return trades
-
-    def get_daily_quotes(self, ticker, date):
-        return self.get_daily_trades(ticker, date, quotes=True)
