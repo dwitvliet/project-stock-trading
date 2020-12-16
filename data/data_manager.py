@@ -92,7 +92,7 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
         )
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=10)
 def get_trades(ticker, date_from, date_to=None, data_type='trades'):
     """ Gets all trades for a range of dates.
 
@@ -127,9 +127,8 @@ def get_trades(ticker, date_from, date_to=None, data_type='trades'):
     return pd.concat(trades)
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=10)
 def get_quotes(ticker, date_from, date_to=None):
     quotes = get_trades(ticker, date_from, date_to, data_type='quotes')
-    print(quotes)
     quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
     return quotes

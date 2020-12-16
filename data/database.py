@@ -310,26 +310,24 @@ class Database:
         with self as con:
             con.executemany(query, values)
 
-    def get_trades(self, ticker, date, quotes=False):
+    def get_trades(self, ticker, date, datatype='trades'):
         """ Get all trades/quotes for a ticker for a specific date. 
         
         The time is converted from a Unix timestamp to to datetime in the local
         timezone of NYSE and Nasdaq (Eastern time).
         """
         
-        if quotes:
-            table_name = 'quotes'
+        if datatype == 'trades':
+            columns = ['timestamp', 'price', 'volume']
+        else:  # quotes
             columns = [
                 'timestamp', 'ask_price', 'ask_volume',
                 'bid_price', 'bid_volume'
             ]
-        else:
-            table_name = 'trades'
-            columns = ['timestamp', 'price', 'volume']
             
         query = f'''
             SELECT {', '.join(columns)}
-            FROM {table_name}
+            FROM {datatype}
             WHERE ticker_id = "{self._get_ticker_id(ticker)}"
             AND date = "{date}"
         '''
