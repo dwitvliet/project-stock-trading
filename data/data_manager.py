@@ -94,7 +94,7 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
 
 @functools.lru_cache(maxsize=10)
 def get_trades(ticker, date_from, date_to=None, data_type='trades'):
-    """ Gets all trades for a range of dates.
+    """ Get all trades for a range of dates.
 
     Fetches the dates from the database. If they do not exist, they are first
     fetched from the API and stored.
