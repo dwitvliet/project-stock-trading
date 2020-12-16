@@ -28,18 +28,19 @@ def profits(bars, price='price', prediction='prediction', buy_cost=0):
     own[bars[prediction].isin((-1, 'sell'))] = False
     own = own.fillna(method='ffill').fillna(False)
 
-    # Determine relative gain during owned periods.
-    price_per_own = bars[price][own].groupby(
+    # Determine relative gain during owned epochs.
+    price_by_epoch = bars[price][own].groupby(
         (own.shift() != own).cumsum()[own]
     )
-    price_at_buy = price_per_own.tail(1).values
-    price_at_sell = price_per_own.head(1).values
-    gains_per_own = (price_at_buy - price_at_sell - buy_cost) / price_at_buy
+    price_at_buy = price_by_epoch.head(1).values
+    price_at_sell = price_by_epoch.tail(1).values
+    gains_per_epoch = (price_at_sell - price_at_buy - buy_cost) / price_at_buy
 
-    active_gain = np.prod(1 + gains_per_own) - 1
+    # Print result.
+    active_gain = np.prod(1 + gains_per_epoch) - 1
     passive_gain = bars[price].dropna()[-1] / bars[price].dropna()[0] - 1
 
     print('Active gain:', active_gain)
-    print('Total buys:', len(gains_per_own))
-    print('Buys with loss:', sum(gains_per_own < 0))
+    print('Total buys:', len(gains_per_epoch))
+    print('Buys with loss:', sum(gains_per_epoch < 0))
     print('Passive gain:', passive_gain)
