@@ -6,3 +6,4 @@ mysql-connector-python
 matplotlib
 seaborn
 jupyterlab
+scipy
