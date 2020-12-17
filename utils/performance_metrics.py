@@ -43,7 +43,7 @@ def profits(bars, price='price', prediction='prediction', buy_cost=0):
 
     return {
         'active_gain': active_gain,
-        'total_guys': len(gains_per_epoch),
+        'total_buys': len(gains_per_epoch),
         'buys_with_loss': sum(gains_per_epoch < 0),
         'passive_gain': passive_gain
     }
