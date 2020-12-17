@@ -19,7 +19,7 @@ def profits(bars, price='price', prediction='prediction', buy_cost=0):
             be substracted from the profits.
             
     Returns:
-        float
+        dict
     
     """
 
@@ -41,10 +41,12 @@ def profits(bars, price='price', prediction='prediction', buy_cost=0):
     active_gain = np.prod(1 + gains_per_epoch) - 1
     passive_gain = bars[price].dropna()[-1] / bars[price].dropna()[0] - 1
 
-    print('Active gain:', active_gain)
-    print('Total buys:', len(gains_per_epoch))
-    print('Buys with loss:', sum(gains_per_epoch < 0))
-    print('Passive gain:', passive_gain)
+    return {
+        'active_gain': active_gain,
+        'total_guys': len(gains_per_epoch),
+        'buys_with_loss': sum(gains_per_epoch < 0),
+        'passive_gain': passive_gain
+    }
 
 
 def plot_buy_sell(bars, columns, prediction='prediction'):
