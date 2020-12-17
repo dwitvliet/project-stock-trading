@@ -65,17 +65,17 @@ def plot_buy_sell(bars, columns, prediction='prediction'):
     plots = len(columns)
 
     fig, axes = plt.subplots(plots, 1, figsize=(9, plots * 3))
+    if plots == 1:
+        axes = [axes]
 
     for column, ax in zip(columns, axes):
         bars[column].plot.line(ax=ax, ylabel=column)
 
-    prediction_runs = bars[prediction].groupby(
-        (bars[prediction].shift() != bars[prediction]).cumsum()
-    )
-    predictions = prediction_runs.head(1)
-    pred_starts = prediction_runs.head(1).index
-    pred_ends = prediction_runs.tail(1).index
-    for prediction, start, end in zip(predictions, pred_starts, pred_ends):
+    predictions = bars[prediction]
+    cumsum = (predictions.shift() != predictions).cumsum()
+    pred_starts = predictions.groupby(cumsum).head(1)
+    pred_ends = predictions.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
+    for prediction, start, end in zip(pred_starts, pred_starts.index, pred_ends.index):
         for ax in axes:
             if prediction == 'buy':
                 ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
