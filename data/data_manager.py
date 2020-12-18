@@ -116,8 +116,7 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
         )
 
 
-def generate_and_store_feature(ticker, feature_name, date_from, date_to,
-                               generate_feature_func, *args, **kwargs):
+def store_feature(feature_name, ticker, date_from, date_to, func, params):
 
     dates_to_generate = _dates_missing_from_database(
         ticker, date_from, date_to, feature_name
@@ -129,7 +128,7 @@ def generate_and_store_feature(ticker, feature_name, date_from, date_to,
     )
 
     for date in dates_to_generate:
-        series = generate_feature_func(ticker, date, *args, **kwargs)
+        series = func(ticker, date, params)
 
         # Ensure no accidentally left in NaNs.
         nan_counts = series.isna().sum()

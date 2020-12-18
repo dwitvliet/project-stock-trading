@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import data.data_manager as data
 
 
-def label_buy_or_sell(ticker, date, smooth_periods=1, gain_threshold=0.05):
+def label_buy_or_sell(ticker, date, params):
     """ To label price increases as 'buy' and decreases as 'sell'.
 
     Any increases larger than the `gain_threshold` is labeled as 'buy' whereas
@@ -19,16 +19,21 @@ def label_buy_or_sell(ticker, date, smooth_periods=1, gain_threshold=0.05):
 
     Args:
         ticker (str): Ticker symbol.
-        date (Date): Date to label.
-        smooth_periods (int, optional): The number of periods into the past
-            (inclusive) to average the price over, to reduce low-level noise.
-        gain_threshold (float, optional): The threshold that an increase have to
-            be above to be considered profitable.
+        date (datetime.date): Date to label.
+        params (dict):
+            "periods_to_smooth_by" (int): The number of periods into the past
+                (inclusive) to average the price over, to reduce low-level
+                noise.
+            "gain_threshold" (float): The threshold that an increase have to be
+                above to be considered profitable.
 
     Returns:
         pd.Series
 
     """
+    smooth_periods = params.get('periods_to_smooth_by', 1)
+    gain_threshold = params.get('gain_threshold', 0.05)
+
     # Get price aggregates per second.
     bars = data.get_bars(
         ticker, date, agg='weighted_mean', smooth_periods=smooth_periods
@@ -92,6 +97,8 @@ def label_buy_or_sell(ticker, date, smooth_periods=1, gain_threshold=0.05):
 
     # Always sell at the end of the day.
     label.iloc[-1] = 'sell'
+
+    label = label.replace({'buy': 1, 'keep': 0, 'sell': -1})
 
     return label
 
