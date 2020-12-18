@@ -6,8 +6,10 @@ import matplotlib as mpl
 import matplotlib.patches
 import matplotlib.pyplot as plt
 
+import data.data_manager as data
 
-def label_timeseries(bars, gain_threshold=0.05):
+
+def label_buy_or_sell(ticker, date, smooth_periods=1, gain_threshold=0.05):
     """ To label price increases as 'buy' and decreases as 'sell'.
 
     Any increases larger than the `gain_threshold` is labeled as 'buy' whereas
@@ -16,7 +18,10 @@ def label_timeseries(bars, gain_threshold=0.05):
     the last small increase before selling is labeled as 'keep'.
 
     Args:
-        bars (pd.Series): A timeseries of prices.
+        ticker (str): Ticker symbol.
+        date (Date): Date to label.
+        smooth_periods (int, optional): The number of periods into the past
+            (inclusive) to average the price over, to reduce low-level noise.
         gain_threshold (float, optional): The threshold that an increase have to
             be above to be considered profitable.
 
@@ -24,8 +29,10 @@ def label_timeseries(bars, gain_threshold=0.05):
         pd.Series
 
     """
-
-    label = pd.Series(index=bars.index)
+    # Get price aggregates per second.
+    bars = data.get_bars(
+        ticker, date, agg='weighted_mean', smooth_periods=smooth_periods
+    )
 
     # Get local minima and maxima (extrema) for the time series.
     minima_and_maxima = np.sort(np.concatenate([
@@ -36,6 +43,7 @@ def label_timeseries(bars, gain_threshold=0.05):
 
     # For each extrema, calculate the price difference to the next series of
     # extrema until the price has decreased below the maximum price.
+    label = pd.Series(index=bars.index)
     extrema_labeled = []
     for i, start_extremum in enumerate(minima_and_maxima):
         if i in extrema_labeled:
@@ -88,29 +96,29 @@ def label_timeseries(bars, gain_threshold=0.05):
     return label
 
 
-def profits(bars, buy_or_sell, buy_cost=0):
+def profits(bars, label, buy_cost=0):
     """ Test how profitable predictions are.
-    
+
     Given a dataframe of prices and a prediction on whether to buy or sell at a
     certain time, calculate the profits gained during the time period.
-    
+
     Args:
         bars (pd.Series): Time series with prices.
-        buy_or_sell (pd.Series): Time series containing predictions on whether
+        label (pd.Series): Time series containing predictions on whether
             to buy or not. Values should be either 1 (buy), 0 (keep), or -1
             (sell).
         buy_cost (float, optional): The cost of buying and selling a stock, to
             be substracted from the profits.
-            
+
     Returns:
         dict
-    
+
     """
 
     # Determine which time periods the stock is owned.
     own = pd.Series(index=bars.index)
-    own[buy_or_sell.isin((1, 'buy'))] = True
-    own[buy_or_sell.isin((-1, 'sell'))] = False
+    own[label.isin((1, 'buy'))] = True
+    own[label.isin((-1, 'sell'))] = False
     own = own.fillna(method='ffill').fillna(False)
 
     # Determine relative gain during owned epochs.
@@ -160,7 +168,8 @@ def plot_timeseries(bars, columns, prediction='prediction'):
     cumsum = (predictions.shift() != predictions).cumsum()
     pred_starts = predictions.groupby(cumsum).head(1)
     pred_ends = predictions.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
-    for pred, start, end in zip(pred_starts, pred_starts.index, pred_ends.index):
+    for pred, start, end in zip(pred_starts, pred_starts.index,
+                                pred_ends.index):
         for ax in axes:
             if pred == 'buy':
                 ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
