@@ -1,5 +1,4 @@
 import os
-import datetime
 import functools
 import logging
 
@@ -354,6 +353,14 @@ class Database:
             '''
             con.execute(query)
             (feature_id, ) = con.fetchone()
+
+            # Insert feature values.
+            query = f'''
+                INSERT INTO feature_values_summary (feature_id, date) 
+                VALUES (%s, %s)
+            '''
+            values = [(feature_id, date) for date in set(series.index.date)]
+            con.executemany(query, values)
             
             # Insert feature values.
             query = f'''
