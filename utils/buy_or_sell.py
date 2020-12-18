@@ -39,9 +39,14 @@ def label_timeseries(bars, gain_threshold):
         if i in extrema_labeled:
             continue
         start_price = bars[start_extremum]
-        max_extremum = start_extremum
+
+        # Initiate variable for loop in case the extremum is the of the day.
+        future_extremum = max_extremum = start_extremum
         max_price = start_price
-        action = 'sell'  # end of day
+        action = 'sell'
+        j = i
+
+        # Iterate all future extrema.
         for j, future_extremum in enumerate(minima_and_maxima[i + 1:], i + 1):
             future_price = bars[future_extremum]
             if future_price > max_price:
@@ -153,11 +158,11 @@ def plot_timeseries(bars, columns, prediction='prediction'):
     cumsum = (predictions.shift() != predictions).cumsum()
     pred_starts = predictions.groupby(cumsum).head(1)
     pred_ends = predictions.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
-    for prediction, start, end in zip(pred_starts, pred_starts.index, pred_ends.index):
+    for pred, start, end in zip(pred_starts, pred_starts.index, pred_ends.index):
         for ax in axes:
-            if prediction == 'buy':
+            if pred == 'buy':
                 ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
-            if prediction == 'sell':
+            if pred == 'sell':
                 ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
 
     plt.show()
