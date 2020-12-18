@@ -31,7 +31,7 @@ def label_buy_or_sell(ticker, date, params):
         pd.Series
 
     """
-    smooth_periods = params.get('periods_to_smooth_by', 1)
+    smooth_periods = params.get('periods_to_smooth_by', 3)
     gain_threshold = params.get('gain_threshold', 0.05)
 
     # Get price aggregates per second.

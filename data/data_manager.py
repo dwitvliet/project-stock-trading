@@ -116,7 +116,10 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
         )
 
 
-def store_feature(feature_name, ticker, date_from, date_to, func, params):
+def store_feature(feature_name, ticker, date_from, date_to, func, params=None):
+
+    if params is None:
+        params = {}
 
     dates_to_generate = _dates_missing_from_database(
         ticker, date_from, date_to, feature_name
