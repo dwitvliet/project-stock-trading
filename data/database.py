@@ -208,6 +208,7 @@ class Database:
 
         return ticker_id
 
+    @functools.lru_cache(maxsize=None)
     def get_holidays(self, exchange, date_from=None, date_to=None):
         query = f'''
             SELECT date, hours
@@ -221,25 +222,6 @@ class Database:
         with self as con:
             con.execute(query)
             return con.fetchall()
-
-    def get_open_hours(self, dates, exchange):
-        """ Determine open operating hours of exchange for a range of dates.
-
-        Uses the extended hour by Robinhood/Alpaca, which includes 30 minutes of
-        pre-market and 2 hours of post-market.
-
-        """
-
-        holidays = dict(self.get_holidays(exchange))
-
-        hours = {}
-        for date in dates:
-            half_day = (date in holidays and holidays[date] == 'half')
-            start_time = datetime.time(9, 0)
-            close_time = datetime.time(15 if half_day else 18, 0)
-            hours[date] = (start_time, close_time)
-
-        return hours
 
     def get_stored_dates(self, table, ticker):
         query = f'''

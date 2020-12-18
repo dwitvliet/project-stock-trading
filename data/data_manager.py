@@ -8,6 +8,7 @@ import pandas as pd
 import config
 from data.database import Database
 from data.api_manager import APIManager
+from utils import descriptive_stats
 
 
 db = Database(config.database)
@@ -55,6 +56,18 @@ def get_open_dates(exchange, date_from, date_to):
         open_dates.append(date.date())
 
     return open_dates
+
+
+def get_open_hours(exchange, date):
+    """ Determine open operating hours of exchange for date
+
+    """
+    holidays = dict(db.get_holidays(exchange))
+    half_day = (date in holidays and holidays[date] == 'half')
+    start_time = datetime.time(9, 30)
+    close_time = datetime.time(13 if half_day else 16, 0)
+
+    return start_time, close_time
 
 
 def _dates_missing_from_database(ticker, date_from, date_to, data_type):
@@ -116,7 +129,7 @@ def generate_and_store_feature(ticker, feature_name, date_from, date_to,
     )
 
     for date in dates_to_generate:
-        series = generate_feature_func(date, *args, **kwargs)
+        series = generate_feature_func(ticker, date, *args, **kwargs)
 
         # Ensure no accidentally left in NaNs.
         nan_counts = series.isna().sum()
@@ -125,9 +138,6 @@ def generate_and_store_feature(ticker, feature_name, date_from, date_to,
         )
 
         db.store_feature(ticker, feature_name, series)
-
-
-
 
 
 @functools.lru_cache(maxsize=10)
@@ -170,3 +180,37 @@ def get_quotes(ticker, date_from, date_to=None):
     quotes = get_trades(ticker, date_from, date_to, data_type='quotes')
     quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
     return quotes
+
+
+@functools.lru_cache(maxsize=10)
+def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1):
+    if data_type == 'trades':
+        trades = get_trades(ticker, date)
+    else:
+        trades = get_quotes(ticker, date)
+
+    grouper = pd.Grouper(key='time', freq='1S')
+    if agg == 'weighted_mean':
+        bars = descriptive_stats.weighted_mean(
+            trades, values='price', weights='volume', groupby=grouper
+        )
+    else:
+        bars = trades.groupby(grouper).agg(agg)
+
+    if agg in ('weighted_mean', 'mean', 'median'):
+        bars = bars.fillna(method='ffill')
+    elif agg in ('sum', 'min', 'max', 'std'):
+        bars = bars.fillna(0)
+
+    if smooth_periods > 1:
+        bars = bars.rolling(smooth_periods).mean()
+
+    open_time, close_time = get_open_hours(exchange_for_ticker(ticker), date)
+    bars = bars.reindex(pd.date_range(
+        datetime.datetime.combine(date, open_time),
+        datetime.datetime.combine(date, close_time),
+        freq='1S',
+        closed='left'
+    ))
+
+    return bars
