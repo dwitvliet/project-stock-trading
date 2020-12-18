@@ -2,11 +2,12 @@ import numpy as np
 import pandas as pd
 import scipy as sc
 import scipy.signal
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
-def label_timeseries(bars, gain_threshold):
-    """ Labels price increases as 'buy' and decreases as 'buy'.
+def label_timeseries(bars, gain_threshold=0.05):
+    """ To label price increases as 'buy' and decreases as 'sell'.
 
     Any increases larger than the `gain_threshold` is labeled as 'buy' whereas
     the rest is labeled as 'sell'. To distinguish when during the increase that
@@ -15,21 +16,21 @@ def label_timeseries(bars, gain_threshold):
 
     Args:
         bars (pd.Series): A timeseries of prices.
-        gain_threshold (float): The threshold that an increase have to be above
-            to be considered profitable.
+        gain_threshold (float, optional): The threshold that an increase have to
+            be above to be considered profitable.
 
     Returns:
         pd.Series
 
     """
+
     label = pd.Series(index=bars.index)
-    bars = bars.values
 
     # Get local minima and maxima (extrema) for the time series.
     minima_and_maxima = np.sort(np.concatenate([
         [0],
-        sc.signal.argrelextrema(bars, np.less_equal, order=5)[0],
-        sc.signal.argrelextrema(bars, np.greater_equal, order=5)[0]
+        sc.signal.argrelextrema(bars.values, np.less_equal, order=5)[0],
+        sc.signal.argrelextrema(bars.values, np.greater_equal, order=5)[0]
     ]))
 
     # For each extrema, calculate the price difference to the next series of
@@ -164,5 +165,12 @@ def plot_timeseries(bars, columns, prediction='prediction'):
                 ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
             if pred == 'sell':
                 ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
+
+    legend_elements = [
+        mpl.patches.Patch(label='Buy', fc='green', ec='green', alpha=0.2),
+        mpl.patches.Patch(label='Keep', fc='white', ec='#aaaaaa'),
+        mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
+    ]
+    axes[0].legend(handles=legend_elements, loc='upper right')
 
     plt.show()
