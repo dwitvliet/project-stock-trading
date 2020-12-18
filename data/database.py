@@ -333,22 +333,23 @@ class Database:
         return df.drop('timestamp', axis=1)
 
     def store_feature(self, ticker, name, series, description=None):
+        ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
             # Insert feature name and description.
             query = f'''
-                INSERT INTO features (ticker, name, description) 
+                INSERT INTO features (ticker_id, name, description) 
                 VALUES (%s, %s, %s)
                 ON DUPLICATE KEY UPDATE description=description
             '''
-            values = (ticker, name, description)
+            values = (ticker_id, name, description)
             con.execute(query, values)
             
             # Get unique id of feature.
             query = f'''
                 SELECT id
                 FROM features
-                WHERE ticker = "{ticker}"
+                WHERE ticker_id = "{ticker_id}"
                 AND name = "{name}"
             '''
             con.execute(query)
@@ -368,13 +369,12 @@ class Database:
                 VALUES (%s, %s, %s)
             '''
             values = [
-                (feature_id, time, value)
+                (feature_id, time.to_pydatetime(), value)
                 for time, value
                 in series.iteritems()
             ]
             con.executemany(query, values)
 
-    @functools.lru_cache(maxsize=None)
     def _get_feature_id(self, ticker, feature):
         query = f'''
             SELECT id
@@ -384,12 +384,15 @@ class Database:
         '''
         with self as con:
             con.execute(query)
-            (feature_id, ) = con.fetchone()
+            feature_id = con.fetchone()
 
-        return feature_id
+        if feature_id is not None:
+            return feature_id[0]
 
     def get_stored_dates_for_feature(self, ticker, feature):
         feature_id = self._get_feature_id(ticker, feature)
+        if feature_id is None:
+            return []
 
         query = f'''
             SELECT date
