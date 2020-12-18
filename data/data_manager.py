@@ -57,19 +57,30 @@ def get_open_dates(exchange, date_from, date_to):
     return open_dates
 
 
-def download_trades(ticker, date_from, date_to, data_type='trades',
-                    verbose=False):
+def _dates_missing_from_database(ticker, date_from, date_to, data_type):
     exchange = exchange_for_ticker(ticker)
     dates_with_trades = get_open_dates(exchange, date_from, date_to)
-    dates_stored = db.get_stored_dates(data_type, ticker)
 
-    dates_to_fetch = [d for d in dates_with_trades if d not in dates_stored]
+    if data_type in ('trades', 'quotes'):
+        dates_stored = db.get_stored_dates(data_type, ticker)
+    else:
+        dates_stored = db.get_stored_dates_for_feature(ticker, data_type)
+
+    return [d for d in dates_with_trades if d not in dates_stored]
+
+
+def download_trades(ticker, date_from, date_to, data_type='trades',
+                    verbose=False):
+
+    dates_to_fetch = _dates_missing_from_database(
+        ticker, date_from, date_to, data_type
+    )
 
     if len(dates_to_fetch) == 0:
         if verbose:
             logging.info(
-                f'All {len(dates_with_trades)} day(s) of {data_type} from '
-                f'{date_from} to {date_to} are already stored.'
+                f'All day(s) of {data_type} from {date_from} to {date_to} are'
+                'already stored.'
             )
         return
 
@@ -90,6 +101,33 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
             f'fetch: {int(round(time_before_store - time_before_fetch))}s, '
             f'store: {int(round(time.time() - time_before_store))}s'
         )
+
+
+def generate_and_store_feature(ticker, feature_name, date_from, date_to,
+                               generate_feature_func, *args, **kwargs):
+
+    dates_to_generate = _dates_missing_from_database(
+        ticker, date_from, date_to, feature_name
+    )
+
+    logging.info(
+        f'Generating {len(dates_to_generate)} day(s) of feature {feature_name} '
+        f'from {date_from} to {date_to} for ticker {ticker}'
+    )
+
+    for date in dates_to_generate:
+        series = generate_feature_func(date, *args, **kwargs)
+
+        # Ensure no accidentally left in NaNs.
+        nan_counts = series.isna().sum()
+        assert nan_counts == 0, (
+            f'Feature {feature_name} for {ticker} has {nan_counts} NaN values.'
+        )
+
+        db.store_feature(ticker, feature_name, series)
+
+
+
 
 
 @functools.lru_cache(maxsize=10)

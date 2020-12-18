@@ -151,7 +151,16 @@ class Database:
                     KEY trades_select_by_time (time, feature_id, value)
                 ) ENGINE=INNODB;
             ''')
-            
+
+            con.execute('''
+                CREATE TABLE IF NOT EXISTS feature_values_summary (
+                    feature_id INT NOT NULL,
+                    date DATE NOT NULL,
+                    PRIMARY KEY (feature_id, date), 
+                    FOREIGN KEY (feature_id) REFERENCES features(id)
+                ) ENGINE=INNODB;
+            ''')
+
         # Populate holiday table.
         file_path = os.path.join(
             os.path.dirname(os.path.realpath(__file__)), 'holidays.csv'
@@ -343,10 +352,7 @@ class Database:
         return df.drop('timestamp', axis=1)
 
     def store_feature(self, ticker, name, series, description=None):
-        
-        # Ensure the values are in a Series and drop NaNs.
-        series = series.squeeze().dropna()
-        
+
         with self as con:
             # Insert feature name and description.
             query = f'''
@@ -378,7 +384,34 @@ class Database:
                 in series.iteritems()
             ]
             con.executemany(query, values)
-        
+
+    @functools.lru_cache(maxsize=None)
+    def _get_feature_id(self, ticker, feature):
+        query = f'''
+            SELECT id
+            FROM features
+            WHERE ticker_id = {self._get_ticker_id(ticker)}
+            AND name = "{feature}"
+        '''
+        with self as con:
+            con.execute(query)
+            (feature_id, ) = con.fetchone()
+
+        return feature_id
+
+    def get_stored_dates_for_feature(self, ticker, feature):
+        feature_id = self._get_feature_id(ticker, feature)
+
+        query = f'''
+            SELECT date
+            FROM feature_values_summary
+            WHERE feature_id = {feature_id}
+        '''
+
+        with self as con:
+            con.execute(query)
+            dates = [row[0] for row in con.fetchall()]
+        return dates
 #
 #
 #
