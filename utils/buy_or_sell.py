@@ -3,6 +3,7 @@ import pandas as pd
 import scipy as sc
 import scipy.signal
 import matplotlib as mpl
+import matplotlib.patches
 import matplotlib.pyplot as plt
 
 
