@@ -174,6 +174,8 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     else:
         trades = get_quotes(ticker, date)
 
+    # Aggregate by the second. Shift after aggregation for each bar to represent
+    # what happened leading up to the timepoint (rather than after it).
     grouper = pd.Grouper(key='time', freq='1S')
     if agg == 'weighted_mean':
         bars = descriptive_stats.weighted_mean(
@@ -181,6 +183,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
         )
     else:
         bars = trades.groupby(grouper).agg(agg)
+    bars = bars.shift(1)
 
     # Fill blanks.
     if agg in ('weighted_mean', 'mean', 'median'):
@@ -191,6 +194,9 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     if smooth_periods > 1:
         bars = bars.rolling(smooth_periods).mean()
 
+    # Restrict time to tradings hours. Includes the opening time, which
+    # represents trading data during one second of pre-market trading (will be
+    # NaN if extended hours are requested).
     open_time, close_time = get_open_hours(
         exchange_for_ticker(ticker), date, extended_hours=extended_hours
     )
