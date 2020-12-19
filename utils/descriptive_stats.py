@@ -16,7 +16,9 @@ def weighted_mean(df, values=None, weights=None, groupby=None):
 
     """
 
-    assert None not in (values, weights, groupby), 'All four arguments are required'
+    assert None not in (values, weights, groupby), (
+        'All four arguments are required'
+    )
 
     df = df.copy()
     grouped = df.groupby(groupby)
@@ -38,7 +40,9 @@ def weighted_median(df, values=None, weights=None, groupby=None):
 
     """
     
-    assert None not in (values, weights, groupby), 'All four arguments are required'
+    assert None not in (values, weights, groupby), (
+        'All four arguments are required'
+    )
     
     df = df.sort_values(values)
     
@@ -55,7 +59,7 @@ def weighted_median(df, values=None, weights=None, groupby=None):
     
         is_halfpoint = cumulative_sum == halfpoint
         is_over_halfpoint = cumulative_sum >= halfpoint
-        median_by_volume = is_over_halfpoint & (is_over_halfpoint.shift() == False) | is_halfpoint.shift()
+        median_by_volume = is_over_halfpoint & (is_over_halfpoint.shift() is False) | is_halfpoint.shift()
     
         return x.loc[median_by_volume, values].mean()
     
@@ -72,13 +76,11 @@ def weighted_median(df, values=None, weights=None, groupby=None):
 
 # df = pd.DataFrame({'values': values, 'weights': weights, 'groupby': groupby})
 
-
 # import time
 
 # time1 = time.time()
-# print(weighted_median(df, values='values', weights='weights', groupby='groupby').head())
+# print(weighted_median(df, 'values', 'weights', groupby='groupby').head())
 # print('Time for `weighted_mean`:', time.time() - time1)
-
 
 # df['values'].median()
 # # time1 = time.time()
