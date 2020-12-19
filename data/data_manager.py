@@ -58,14 +58,18 @@ def get_open_dates(exchange, date_from, date_to):
     return open_dates
 
 
-def get_open_hours(exchange, date):
+def get_open_hours(exchange, date, extended_hours=False):
     """ Determine open operating hours of exchange for date
 
     """
     holidays = dict(db.get_holidays(exchange))
     half_day = (date in holidays and holidays[date] == 'half')
-    start_time = datetime.time(9, 30)
-    close_time = datetime.time(13 if half_day else 16, 0)
+    if not extended_hours:
+        start_time = datetime.time(9, 30)
+        close_time = datetime.time(13 if half_day else 16, 0)
+    else:
+        start_time = datetime.time(4, 0)
+        close_time = datetime.time(17 if half_day else 20, 0)
 
     return start_time, close_time
 
@@ -158,8 +162,13 @@ def get_quotes(ticker, date_from, date_to=None):
     return quotes
 
 
-@functools.lru_cache(maxsize=10)
-def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1):
+#@functools.lru_cache(maxsize=10)
+def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
+             extended_hours=False):
+
+    if type(date) == str:
+        date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+
     if data_type == 'trades':
         trades = get_trades(ticker, date)
     else:
@@ -173,6 +182,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1):
     else:
         bars = trades.groupby(grouper).agg(agg)
 
+    # Fill blanks.
     if agg in ('weighted_mean', 'mean', 'median'):
         bars = bars.fillna(method='ffill')
     elif agg in ('sum', 'min', 'max', 'std'):
@@ -181,12 +191,14 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1):
     if smooth_periods > 1:
         bars = bars.rolling(smooth_periods).mean()
 
-    open_time, close_time = get_open_hours(exchange_for_ticker(ticker), date)
+    open_time, close_time = get_open_hours(
+        exchange_for_ticker(ticker), date, extended_hours=extended_hours
+    )
     bars = bars.reindex(pd.date_range(
         datetime.datetime.combine(date, open_time),
         datetime.datetime.combine(date, close_time),
         freq='1S',
-        closed='left'
+        closed=None
     ))
 
     return bars
