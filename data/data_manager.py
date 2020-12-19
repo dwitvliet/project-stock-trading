@@ -70,7 +70,7 @@ def get_open_hours(exchange, date):
     return start_time, close_time
 
 
-def _dates_missing_from_database(ticker, date_from, date_to, data_type):
+def dates_missing_from_database(ticker, date_from, date_to, data_type):
     exchange = exchange_for_ticker(ticker)
     dates_with_trades = get_open_dates(exchange, date_from, date_to)
 
@@ -85,7 +85,7 @@ def _dates_missing_from_database(ticker, date_from, date_to, data_type):
 def download_trades(ticker, date_from, date_to, data_type='trades',
                     verbose=False):
 
-    dates_to_fetch = _dates_missing_from_database(
+    dates_to_fetch = dates_missing_from_database(
         ticker, date_from, date_to, data_type
     )
 
@@ -114,33 +114,6 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
             f'fetch: {int(round(time_before_store - time_before_fetch))}s, '
             f'store: {int(round(time.time() - time_before_store))}s'
         )
-
-
-def store_feature(feature_name, ticker, date_from, date_to, func, params=None):
-
-    if params is None:
-        params = {}
-
-    dates_to_generate = _dates_missing_from_database(
-        ticker, date_from, date_to, feature_name
-    )
-
-    logging.info(
-        f'Generating {len(dates_to_generate)} day(s) of feature {feature_name} '
-        f'from {date_from} to {date_to} for ticker {ticker}'
-    )
-
-    for date in dates_to_generate:
-        series = func(ticker, date, params)
-
-        # Ensure no accidentally left in NaNs.
-        nan_counts = series.isna().sum()
-        assert nan_counts == 0, (
-            f'Feature `{feature_name}` ({ticker}) has {nan_counts} NaN values '
-            f'for date {date}.'
-        )
-
-        db.store_feature(ticker, feature_name, series)
 
 
 @functools.lru_cache(maxsize=10)
