@@ -57,6 +57,12 @@ class FeatureManager:
 
         # For each date with features to be generated, iterate each feature.
         dates_to_generate = dates_to_generate[dates_to_generate.sum(axis=1) > 0]
+        if dates_to_generate.size == 0:
+            logging.info(
+                f'All days of from {date_from} to {date_to} already have the '
+                f'{len(self.features)} registered feature(s) stored.'
+            )
+
         for timestamp, features in dates_to_generate.iterrows():
             date = timestamp.date()
             logging.info(f'Generating {features.sum()} feature(s) for {date}')
