@@ -41,14 +41,14 @@ def label_buy_or_sell(ticker, date, params):
 
     # Get local minima and maxima (extrema) for the time series.
     minima_and_maxima = np.sort(np.concatenate([
-        [0],
+        [0, bars.size - 1],
         sc.signal.argrelextrema(bars.values, np.less_equal, order=5)[0],
-        sc.signal.argrelextrema(bars.values, np.greater_equal, order=5)[0]
+        sc.signal.argrelextrema(bars.values, np.greater_equal, order=5)[0],
     ]))
 
     # For each extrema, calculate the price difference to the next series of
     # extrema until the price has decreased below the maximum price.
-    label = pd.Series(index=bars.index)
+    label = pd.Series(index=bars.index, name='prediction')
     extrema_labeled = []
     for i, start_extremum in enumerate(minima_and_maxima):
         if i in extrema_labeled:
@@ -58,25 +58,27 @@ def label_buy_or_sell(ticker, date, params):
         # Initiate variable for loop in case the extremum is the of the day.
         future_extremum = max_extremum = start_extremum
         max_price = start_price
-        action = 'sell'
+        action = None
         j = i
 
         # Iterate all future extrema.
         for j, future_extremum in enumerate(minima_and_maxima[i + 1:], i + 1):
             future_price = bars[future_extremum]
+            # Still gaining in price.
             if future_price > max_price:
-                # Still gaining in price.
                 max_extremum = future_extremum
                 max_price = future_price
-            if max_price - start_price > gain_threshold:
-                # Gained enough to be profitable.
-                if max_price - future_price > gain_threshold:
-                    # But not gaining anymore.
+            # Not gaining anymore or end of time series.
+            if (
+                max_price - future_price > gain_threshold or
+                j + 1 == len(minima_and_maxima)
+            ):
+                if max_price - start_price > gain_threshold:
+                    # Gained enough to be profitable.
                     action = 'buy'
-                    break
-            if future_price < start_price:
-                # Decreased in price.
-                action = 'sell'
+                else:
+                    # Not profitable.
+                    action = 'sell'
                 break
 
         # If the maximum price is above the threshold, buy from the start to the
@@ -98,9 +100,7 @@ def label_buy_or_sell(ticker, date, params):
     # Always sell at the end of the day.
     label.iloc[-1] = 'sell'
 
-    label = label.replace({'buy': 1, 'keep': 0, 'sell': -1})
-
-    return label
+    return label.replace({'buy': 1, 'keep': 0, 'sell': -1})
 
 
 def profits(bars, label, buy_cost=0):
@@ -178,9 +178,9 @@ def plot_timeseries(bars, columns, prediction='prediction'):
     for pred, start, end in zip(pred_starts, pred_starts.index,
                                 pred_ends.index):
         for ax in axes:
-            if pred == 'buy':
+            if pred in ('buy', 1):
                 ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
-            if pred == 'sell':
+            if pred in ('sell', -1):
                 ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
 
     legend_elements = [

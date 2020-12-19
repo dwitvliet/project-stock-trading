@@ -136,7 +136,8 @@ def store_feature(feature_name, ticker, date_from, date_to, func, params=None):
         # Ensure no accidentally left in NaNs.
         nan_counts = series.isna().sum()
         assert nan_counts == 0, (
-            f'Feature {feature_name} for {ticker} has {nan_counts} NaN values.'
+            f'Feature `{feature_name}` ({ticker}) has {nan_counts} NaN values '
+            f'for date {date}.'
         )
 
         db.store_feature(ticker, feature_name, series)
