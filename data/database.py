@@ -182,7 +182,7 @@ class Database:
         # Replace NaNs with None and covert dataframe to list of tuples as
         # MySQL does not understand NumPy and Pandas data structures.
         df = df.where(df.notna(), None)
-        values = list(map(tuple, df.values))
+        values = list(map(tuple, df.to_numpy()))
 
         with self as con:
             con.executemany(f'''

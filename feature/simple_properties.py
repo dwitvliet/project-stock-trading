@@ -44,9 +44,9 @@ def recent_trades(ticker, date, params):
     # Convert all data to numpy ndarrays outside loop for better performance.
     previous_price = bars.shift(1).between_time(open_time, close_time)
     trades = trades.sort_values('time', ascending=False)  # latest first
-    trade_price_arr = trades['price'].values
-    trade_volume_arr = trades['volume'].values
-    trade_timestamp_arr = trades['time'].astype(int).values
+    trade_price_arr = trades['price'].to_numpy()
+    trade_volume_arr = trades['volume'].to_numpy()
+    trade_timestamp_arr = trades['time'].to_numpy(int)
 
     # Iterate all time points, selecting the attributes of the most recent
     # trades and summarizing them into a dataframe.
