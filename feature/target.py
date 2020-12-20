@@ -10,7 +10,7 @@ import data.data_manager as data
 
 
 def label_buy_or_sell(ticker, date, params):
-    """ To label price increases as 'buy' and decreases as 'sell'.
+    """ Label price increases as 'buy' and decreases as 'sell'.
 
     Any increases larger than the `gain_threshold` is labeled as 'buy' whereas
     the rest is labeled as 'sell'. To distinguish when during the increase that
