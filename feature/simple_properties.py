@@ -64,9 +64,9 @@ def recent_trades(ticker, date, params):
 
     # Sort recent trades by price and volume, selecting the top and bottom
     # trades.
-    idx_high_price = np.argsort(recent_prices, axis=1)[::-1][:, :num_of_top_trades]
+    idx_high_price = np.fliplr(np.argsort(recent_prices, axis=1))[:, :num_of_top_trades]
     idx_low_price = np.argsort(recent_prices, axis=1)[:, :num_of_top_trades]
-    idx_volume = np.argsort(recent_volumes, axis=1)[::-1][:, :num_of_top_trades]
+    idx_volume = np.fliplr(np.argsort(recent_volumes, axis=1))[:, :num_of_top_trades]
 
     features = [
         ('price_of_trade_with_{}_highest_price', recent_prices, idx_high_price),
