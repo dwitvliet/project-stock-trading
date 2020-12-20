@@ -58,20 +58,21 @@ def get_open_dates(exchange, date_from, date_to):
     return open_dates
 
 
-def get_open_hours(exchange, date, extended_hours=False):
+@functools.lru_cache(maxsize=10)
+def get_trading_hours(ticker, date, extended_hours=False):
     """ Determine open operating hours of exchange for date
 
     """
-    holidays = dict(db.get_holidays(exchange))
+    holidays = dict(db.get_holidays(exchange_for_ticker(ticker)))
     half_day = (date in holidays and holidays[date] == 'half')
     if not extended_hours:
-        start_time = datetime.time(9, 30)
+        open_time = datetime.time(9, 30)
         close_time = datetime.time(13 if half_day else 16, 0)
     else:
-        start_time = datetime.time(4, 0)
+        open_time = datetime.time(4, 0)
         close_time = datetime.time(17 if half_day else 20, 0)
 
-    return start_time, close_time
+    return open_time, close_time
 
 
 def dates_missing_from_database(ticker, date_from, date_to, data_type):
@@ -162,7 +163,7 @@ def get_quotes(ticker, date_from, date_to=None):
     return quotes
 
 
-#@functools.lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=10)
 def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
              extended_hours=False):
 
@@ -197,14 +198,13 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     # Restrict time to tradings hours. Includes the opening time, which
     # represents trading data during one second of pre-market trading (will be
     # NaN if extended hours are requested).
-    open_time, close_time = get_open_hours(
-        exchange_for_ticker(ticker), date, extended_hours=extended_hours
+    open_time, close_time = get_trading_hours(
+        ticker, date, extended_hours=extended_hours
     )
     bars = bars.reindex(pd.date_range(
         datetime.datetime.combine(date, open_time),
         datetime.datetime.combine(date, close_time),
-        freq='1S',
-        closed=None
+        freq='1S'
     ))
 
     return bars
