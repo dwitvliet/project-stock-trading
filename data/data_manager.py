@@ -23,7 +23,7 @@ def exchange_for_ticker(ticker):
     return ticker_details['exchange']
 
 
-@functools.lru_cache(maxsize=None)
+@functools.lru_cache(maxsize=5)
 def get_open_dates(exchange, date_from, date_to):
     """
     Get list of dates within range where exchange is open. Weekends and
@@ -58,7 +58,7 @@ def get_open_dates(exchange, date_from, date_to):
     return open_dates
 
 
-@functools.lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=5)
 def get_trading_hours(ticker, date, extended_hours=False):
     """ Determine open operating hours of exchange for date
 
@@ -73,6 +73,19 @@ def get_trading_hours(ticker, date, extended_hours=False):
         close_time = datetime.time(17 if half_day else 20, 0)
 
     return open_time, close_time
+
+
+@functools.lru_cache(maxsize=5)
+def get_trading_hours_index(ticker, date, extended_hours=False):
+
+    open_time, close_time = get_trading_hours(
+        ticker, date, extended_hours
+    )
+    return pd.date_range(
+        datetime.datetime.combine(date, open_time),
+        datetime.datetime.combine(date, close_time),
+        freq='1S'
+    )
 
 
 def dates_missing_from_database(ticker, date_from, date_to, data_type):
@@ -121,7 +134,7 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
         )
 
 
-@functools.lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=5)
 def get_trades(ticker, date_from, date_to=None, data_type='trades'):
     """ Get all trades for a range of dates.
 
@@ -156,14 +169,14 @@ def get_trades(ticker, date_from, date_to=None, data_type='trades'):
     return pd.concat(trades)
 
 
-@functools.lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=5)
 def get_quotes(ticker, date_from, date_to=None):
     quotes = get_trades(ticker, date_from, date_to, data_type='quotes')
     quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
     return quotes
 
 
-@functools.lru_cache(maxsize=10)
+@functools.lru_cache(maxsize=20)
 def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
              extended_hours=False):
 
@@ -176,7 +189,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
         trades = get_quotes(ticker, date)
 
     # Aggregate by the second. Shift after aggregation for each bar to represent
-    # what happened leading up to the timepoint (rather than after it).
+    # what happened leading up to the time point (rather than after it).
     grouper = pd.Grouper(key='time', freq='1S')
     if agg == 'weighted_mean':
         bars = descriptive_stats.weighted_mean(
@@ -198,13 +211,6 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     # Restrict time to tradings hours. Includes the opening time, which
     # represents trading data during one second of pre-market trading (will be
     # NaN if extended hours are requested).
-    open_time, close_time = get_trading_hours(
-        ticker, date, extended_hours=extended_hours
-    )
-    bars = bars.reindex(pd.date_range(
-        datetime.datetime.combine(date, open_time),
-        datetime.datetime.combine(date, close_time),
-        freq='1S'
-    ))
+    bars = bars.reindex(get_trading_hours_index(ticker, date, extended_hours))
 
     return bars
