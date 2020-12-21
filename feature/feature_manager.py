@@ -69,17 +69,30 @@ class FeatureManager:
             for feature_name in features[features].index:
                 feature = self.features[feature_name]
 
-                # Generate a time series of results for the feature.
+                # Generate a dataframe of results for the feature.
                 result = feature['func'](self.ticker, date, feature['params'])
+                if type(result) == pd.Series:
+                    result = result.rename('').to_frame()
 
                 # Ensure no accidentally left in NaNs.
-                nan_counts = result.isna().sum()
+                nan_counts = result.isna().to_numpy().sum()
                 assert nan_counts == 0, (
                     f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
                     f' NaN values for date {date}.'
                 )
 
-                # Store results in database.
-                data.db.store_feature(
-                    self.ticker, feature_name, result, feature['desc']
+                # Ensure all sub-feature names are unique.
+                assert result.columns.size == result.columns.unique().size, (
+                    f'Not all feature names for `{feature_name}` are unique.'
                 )
+
+                # Store results in database.
+                for col_name in result.columns:
+                    subfeature_name = feature_name
+                    if col_name != '':
+                        subfeature_name += '__' + col_name
+
+                    values = result[col_name]
+                    data.db.store_feature(
+                        self.ticker, subfeature_name, values, feature['desc']
+                    )

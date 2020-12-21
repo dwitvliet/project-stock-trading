@@ -129,7 +129,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS features (
                     id INT NOT NULL AUTO_INCREMENT,
                     ticker_id TINYINT UNSIGNED NOT NULL,
-                    name VARCHAR(50) NOT NULL,
+                    name VARCHAR(100) NOT NULL,
                     description TEXT,
                     PRIMARY KEY (id),
                     UNIQUE KEY (ticker_id, name),
@@ -355,7 +355,7 @@ class Database:
             con.execute(query)
             (feature_id, ) = con.fetchone()
 
-            # Insert feature values.
+            # Insert summary of feature values.
             query = f'''
                 INSERT INTO feature_values_summary (feature_id, date) 
                 VALUES (%s, %s)
@@ -375,29 +375,28 @@ class Database:
             ]
             con.executemany(query, values)
 
-    def _get_feature_id(self, ticker, feature):
+    def _get_feature_ids(self, ticker, feature):
         query = f'''
             SELECT id
             FROM features
             WHERE ticker_id = {self._get_ticker_id(ticker)}
-            AND name = "{feature}"
+            AND name LIKE "{feature}%"
         '''
         with self as con:
             con.execute(query)
-            feature_id = con.fetchone()
+            feature_ids = [row[0] for row in con.fetchall()]
 
-        if feature_id is not None:
-            return feature_id[0]
+        return feature_ids
 
     def get_stored_dates_for_feature(self, ticker, feature):
-        feature_id = self._get_feature_id(ticker, feature)
-        if feature_id is None:
-            return []
+        feature_ids = self._get_feature_ids(ticker, feature)
+        if len(feature_ids) == 0:
+            return feature_ids
 
         query = f'''
-            SELECT date
+            SELECT DISTINCT date
             FROM feature_values_summary
-            WHERE feature_id = {feature_id}
+            WHERE feature_id IN ("{'", "'.join(map(str, feature_ids))}")
         '''
 
         with self as con:
