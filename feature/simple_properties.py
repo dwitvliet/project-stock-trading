@@ -26,7 +26,7 @@ def recent_trades(ticker, date, params):
                 features.
 
     Returns:
-        pd.Series
+        pd.DataFrame
 
     """
 
@@ -38,11 +38,10 @@ def recent_trades(ticker, date, params):
     bars = data.get_bars(
         ticker, date, agg='weighted_mean', smooth_periods=3, extended_hours=True
     )
-    open_time, close_time = data.get_trading_hours(ticker, date)
-    time_index = bars.between_time(open_time, close_time).index
+    trade_hours_index = data.get_trading_hours_index(ticker, date)
 
     # Convert all data to numpy ndarrays outside loop for better performance.
-    previous_price = bars.shift(1).between_time(open_time, close_time)
+    previous_price = bars.shift(1).reindex(trade_hours_index)
     trades = trades.sort_values('time', ascending=False)  # latest first
     trade_price_arr = trades['price'].to_numpy()
     trade_volume_arr = trades['volume'].to_numpy()
@@ -50,10 +49,10 @@ def recent_trades(ticker, date, params):
 
     # Iterate all time points, selecting the attributes of the most recent
     # trades and summarizing them into a dataframe.
-    recent_prices = np.full((len(time_index), num_of_trades), np.nan)
-    recent_volumes = np.full((len(time_index), num_of_trades), np.nan)
-    recent_times = np.full((len(time_index), num_of_trades), np.nan)
-    for i, time in enumerate(time_index.astype(int)):
+    recent_prices = np.full((len(trade_hours_index), num_of_trades), np.nan)
+    recent_volumes = np.full((len(trade_hours_index), num_of_trades), np.nan)
+    recent_times = np.full((len(trade_hours_index), num_of_trades), np.nan)
+    for i, time in enumerate(trade_hours_index.astype(int)):
         first_idx = np.argmax(trade_timestamp_arr < time)
         last_idx = first_idx + num_of_trades
 
@@ -80,9 +79,52 @@ def recent_trades(ticker, date, params):
         ('time_of_trade_with_{}_highest_volume', recent_times, idx_volume),
     ]
 
-    df = pd.DataFrame(index=time_index)
+    df = pd.DataFrame(index=trade_hours_index)
     for feature_names, recent_property, idx in features:
         df[[feature_names.replace('{}', str(j)) for j in range(num_of_top_trades)]] = \
             np.take_along_axis(recent_property, idx, axis=1)
 
     return df
+
+
+def recent_bars(ticker, date, params):
+
+    """
+
+    Args:
+        ticker (str): Ticker symbol.
+        date (datetime.date): Date to label.
+        params (dict):
+            "num_of_trades" (int): The number of recent trades to summarize.
+
+
+    Returns:
+        pd.DataFrame
+
+    """
+
+    bars = pd.DataFrame(index=data.get_trading_hours_index(
+        ticker, date, extended_hours=True
+    ))
+
+    # Weighted mean.
+    bars = bars.join(
+        data.get_bars(ticker, date, 'weighted_mean', extended_hours=True)
+            .rename('weighted_mean')
+    )
+    # Count.
+    bars = bars.join(
+        data.get_bars(ticker, date, 'count', extended_hours=True)['price']
+            .rename('count')
+    )
+    # Price, volume, and price-weighted volume: mean, median, min, max, std.
+    for agg in ['mean', 'median', 'min', 'max', 'std']:
+        bars = bars.join(
+            data.get_bars(
+                ticker, date, agg, extended_hours=True
+            ).add_suffix('_' + agg)
+        )
+
+    bars = bars.reindex(data.get_trading_hours_index(ticker, date))
+
+    return bars
