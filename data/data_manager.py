@@ -178,13 +178,14 @@ def get_quotes(ticker, date_from, date_to=None):
 
 @functools.lru_cache(maxsize=20)
 def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
-             extended_hours=False):
+             extended_hours=False, dollar_volume=False):
 
     if type(date) == str:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
 
     if data_type == 'trades':
         trades = get_trades(ticker, date)
+        trades['dollar_volume'] = trades['volume'] * trades['price']
     else:
         trades = get_quotes(ticker, date)
 
@@ -193,7 +194,8 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     grouper = pd.Grouper(key='time', freq='1S')
     if agg == 'weighted_mean':
         bars = descriptive_stats.weighted_mean(
-            trades, values='price', weights='volume', groupby=grouper
+            trades[['price', 'volume', 'time']],
+            values='price', weights='volume', groupby=grouper
         )
     else:
         bars = trades.groupby(grouper).agg(agg)
