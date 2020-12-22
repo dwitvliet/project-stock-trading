@@ -142,14 +142,14 @@ def bar_changes_relative(ticker, date, params):
     df = pd.DataFrame(index=bars.index)
 
     # Relative to now.
-    df['0_price_min'] = bars['price_min'] / bars['price'] - 1
-    df['0_price_max'] = bars['price_max'] / bars['price'] - 1
-    df['0_price_median'] = bars['price_median'] / bars['price'] - 1
-    df['0_price_std'] = bars['price_std'] / bars['price']
-    df['0_volume_min'] = bars['volume_min'] / bars['volume_mean'] - 1
-    df['0_volume_max'] = bars['volume_max'] / bars['volume_mean'] - 1
-    df['0_volume_median'] = bars['volume_median'] / bars['volume_mean'] - 1
-    df['0_volume_std'] = bars['volume_std'] / bars['volume_mean']
+    prefixes = ['price', 'volume']
+    measures = ['median', 'min', 'max', 'std']
+    for prefix in prefixes:
+        for measure in measures:
+            relative_to = 'price' if prefixes == 'price' else 'volume_mean'
+            df[f'0_{prefix}_{measure}'] = (
+                bars[f'{prefix}_{measure}'] / bars[relative_to] - 1
+            )
 
     # Relative to rolling averages.
     measures = [
@@ -159,10 +159,20 @@ def bar_changes_relative(ticker, date, params):
     for i in (1, 3, 5, 10, 30, 60, 60*3, 60*5, 60*10, 60*30, 60*60, 60*60*3):
         rolling = bars.shift().rolling(i, min_periods=1)
         for measure in measures:
-            df[f'{i}_{measure}'] = (
-                bars[measure] / rolling[measure].mean()
-                - (1 if 'std' not in measure else 0)  # center at 0
+            df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
+
+    # Relative to time high and low.
+    measures = ['price', 'price_min', 'price_max']
+    for i in (60, 60*3, 60*5, 60*10, 60*30, 60*60, 60*60*3):
+        for measure in measures:
+            df[f'{i}_low_{measure}'] = (
+                bars[measure] / rolling['price_min'].min() - 1
+            )
+            df[f'{i}_high_{measure}'] = (
+                bars[measure] / rolling['price_max'].max() - 1
             )
 
+    # Center standard deviation at 0.
+    df[[c for c in df.columns if c.endswith('_std')]] += 1
 
     return df.reindex(data.get_trading_hours_index(ticker, date))
