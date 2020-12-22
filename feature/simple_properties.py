@@ -133,12 +133,12 @@ def _current_bar(ticker, date):
     return bars
 
 
-def current_bar_stats(ticker, date, params):
+def current_bar_stats(ticker, date, _):
     bars = _current_bar(ticker, date)
     return bars.reindex(data.get_trading_hours_index(ticker, date))
 
 
-def bar_changes_relative(ticker, date, params):
+def bar_changes_relative(ticker, date, _):
     bars = _current_bar(ticker, date)
 
     df = pd.DataFrame(index=bars.index)
@@ -198,3 +198,15 @@ def bar_changes_relative(ticker, date, params):
     df[[c for c in df.columns if c.endswith('_std')]] += 1
 
     return df.reindex(data.get_trading_hours_index(ticker, date))
+
+
+def bar_trends(ticker, date, _):
+    bars = _current_bar(ticker, date)
+
+    df = pd.DataFrame(index=bars.index)
+
+    # TODO:
+    #  number of times gone up in the last minute
+    #  and time since last up
+    #  up or down, np.sign
+
