@@ -63,9 +63,13 @@ def recent_trades(ticker, date, params):
 
     # Sort recent trades by price and volume, selecting the top and bottom
     # trades.
-    idx_high_price = np.fliplr(np.argsort(recent_prices, axis=1))[:, :num_of_top_trades]
+    idx_high_price = np.fliplr(
+        np.argsort(recent_prices, axis=1)
+    )[:, :num_of_top_trades]
     idx_low_price = np.argsort(recent_prices, axis=1)[:, :num_of_top_trades]
-    idx_volume = np.fliplr(np.argsort(recent_volumes, axis=1))[:, :num_of_top_trades]
+    idx_volume = np.fliplr(
+        np.argsort(recent_volumes, axis=1)
+    )[:, :num_of_top_trades]
 
     features = [
         ('price_of_trade_with_{}_highest_price', recent_prices, idx_high_price),
@@ -81,7 +85,9 @@ def recent_trades(ticker, date, params):
 
     df = pd.DataFrame(index=trade_hours_index)
     for feature_names, recent_property, idx in features:
-        df[[feature_names.replace('{}', str(j)) for j in range(num_of_top_trades)]] = \
+        df[[
+            feature_names.replace('{}', str(j)) for j in range(num_of_top_trades)
+        ]] = \
             np.take_along_axis(recent_property, idx, axis=1)
 
     return df
@@ -122,14 +128,28 @@ def _current_bar(ticker, date):
             ).add_suffix('_' + agg)
         )
 
-    # Adjust price metrics to (weighted mean) price.
-    for col in ['price_mean', 'price_median', 'price_min', 'price_max']:
-        bars[col + '_relative'] = (bars[col] - bars['price']) / bars['price']
-    bars['price_std_relative'] = bars['price_std'] / bars['price']
-
     return bars
 
 
 def current_bar_stats(ticker, date, params):
     bars = _current_bar(ticker, date)
     return bars.reindex(data.get_trading_hours_index(ticker, date))
+
+
+def bar_changes_relative(ticker, date, params):
+    bars = _current_bar(ticker, date)
+
+    df = pd.DataFrame(index=bars.index)
+
+    # Relative to now.
+    df['0_price_min'] = bars['price_min'] / bars['price'] - 1
+    df['0_price_max'] = bars['price_max'] / bars['price'] - 1
+    df['0_price_median'] = bars['price_median'] / bars['price'] - 1
+    df['0_price_std'] = bars['price_std'] / bars['price']
+    df['0_volume_min'] = bars['volume_min'] / bars['volume_mean'] - 1
+    df['0_volume_max'] = bars['volume_max'] / bars['volume_mean'] - 1
+    df['0_volume_median'] = bars['volume_median'] / bars['volume_mean'] - 1
+    df['0_volume_std'] = bars['volume_std'] / bars['volume_mean']
+
+
+    return df.reindex(data.get_trading_hours_index(ticker, date))
