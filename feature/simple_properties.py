@@ -87,16 +87,13 @@ def recent_trades(ticker, date, params):
     return df
 
 
-def recent_bars(ticker, date, params):
+def _current_bar(ticker, date):
 
     """
 
     Args:
         ticker (str): Ticker symbol.
-        date (datetime.date): Date to label.
-        params (dict):
-            "num_of_trades" (int): The number of recent trades to summarize.
-
+        date (datetime.date): Date to make aggregate bars for.
 
     Returns:
         pd.DataFrame
@@ -110,14 +107,14 @@ def recent_bars(ticker, date, params):
     # Weighted mean.
     bars = bars.join(
         data.get_bars(ticker, date, 'weighted_mean', extended_hours=True)
-            .rename('weighted_mean')
+            .rename('price')
     )
     # Count.
     bars = bars.join(
         data.get_bars(ticker, date, 'count', extended_hours=True)['price']
             .rename('count')
     )
-    # Price, volume, and price-weighted volume: mean, median, min, max, std.
+    # Price, volume, and price-adjusted volume: mean, median, min, max, std.
     for agg in ['mean', 'median', 'min', 'max', 'std']:
         bars = bars.join(
             data.get_bars(
@@ -125,6 +122,14 @@ def recent_bars(ticker, date, params):
             ).add_suffix('_' + agg)
         )
 
-    bars = bars.reindex(data.get_trading_hours_index(ticker, date))
+    # Adjust price metrics to (weighted mean) price.
+    for col in ['price_mean', 'price_median', 'price_min', 'price_max']:
+        bars[col + '_relative'] = (bars[col] - bars['price']) / bars['price']
+    bars['price_std_relative'] = bars['price_std'] / bars['price']
 
     return bars
+
+
+def current_bar_stats(ticker, date, params):
+    bars = _current_bar(ticker, date)
+    return bars.reindex(data.get_trading_hours_index(ticker, date))

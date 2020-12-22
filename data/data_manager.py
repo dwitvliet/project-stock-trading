@@ -178,7 +178,7 @@ def get_quotes(ticker, date_from, date_to=None):
 
 @functools.lru_cache(maxsize=20)
 def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
-             extended_hours=False, dollar_volume=False):
+             extended_hours=False):
 
     if type(date) == str:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
