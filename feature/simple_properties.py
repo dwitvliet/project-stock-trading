@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pandas as pd
 
@@ -169,6 +171,7 @@ def bar_changes_relative(ticker, date, params):
     measures = ('price', 'price_min', 'price_max')
     windows = ('1min', '3min', '5min', '10min', '30min', '1H', '3H')
     for i in windows:
+        rolling = bars.shift().rolling(i, min_periods=1)
         for measure in measures:
             df[f'{i}_low_{measure}'] = (
                 bars[measure] / rolling['price_min'].min() - 1
@@ -176,6 +179,20 @@ def bar_changes_relative(ticker, date, params):
             df[f'{i}_high_{measure}'] = (
                 bars[measure] / rolling['price_max'].max() - 1
             )
+
+    # Calculate relative to opening of minutes/hour/day.
+    measures = ('price', 'price_min', 'price_max')
+    last_opens = ('1min', '5min', '10min', '30min', '1H', '1D')
+    for i in last_opens:
+        price = bars['price'].copy()
+        price[~price.index.isin(pd.date_range(
+            datetime.datetime.combine(date, datetime.time(9, 30)),
+            datetime.datetime.combine(date, datetime.time(16, 0)),
+            freq=i
+        ))] = np.nan
+        price = price.fillna(method='ffill')
+        for measure in measures:
+            df[f'open_{i}_{measure}'] = bars[measure] / price
 
     # Center standard deviation at 0.
     df[[c for c in df.columns if c.endswith('_std')]] += 1
