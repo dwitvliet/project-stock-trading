@@ -160,7 +160,7 @@ def bar_changes_relative(ticker, date, params):
     )
     windows = (
         '1S', '3S', '5S', '10S', '30S',
-        '1min', '3min', '5min', '10min', '30min', '1H', '3H',
+        '1min', '3min', '5min', '10min', '30min', '1H', '1D'
     )
     for i in windows:
         rolling = bars.shift().rolling(i, min_periods=1)
@@ -169,7 +169,7 @@ def bar_changes_relative(ticker, date, params):
 
     # Calculate relative to time high and low.
     measures = ('price', 'price_min', 'price_max')
-    windows = ('1min', '3min', '5min', '10min', '30min', '1H', '3H')
+    windows = ('1min', '3min', '5min', '10min', '30min', '1H', '1D')
     for i in windows:
         rolling = bars.shift().rolling(i, min_periods=1)
         for measure in measures:
