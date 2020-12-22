@@ -151,5 +151,18 @@ def bar_changes_relative(ticker, date, params):
     df['0_volume_median'] = bars['volume_median'] / bars['volume_mean'] - 1
     df['0_volume_std'] = bars['volume_std'] / bars['volume_mean']
 
+    # Relative to rolling averages.
+    measures = [
+        'price', 'price_min', 'price_max', 'price_std',
+        'volume_mean', 'volume_min', 'volume_max', 'volume_std'
+    ]
+    for i in (1, 3, 5, 10, 30, 60, 60*3, 60*5, 60*10, 60*30, 60*60, 60*60*3):
+        rolling = bars.shift().rolling(i, min_periods=1)
+        for measure in measures:
+            df[f'{i}_{measure}'] = (
+                bars[measure] / rolling[measure].mean()
+                - (1 if 'std' not in measure else 0)  # center at 0
+            )
+
 
     return df.reindex(data.get_trading_hours_index(ticker, date))
