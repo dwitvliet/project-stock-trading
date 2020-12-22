@@ -192,7 +192,7 @@ def bar_changes_relative(ticker, date, params):
         ))] = np.nan
         price = price.fillna(method='ffill')
         for measure in measures:
-            df[f'open_{i}_{measure}'] = bars[measure] / price
+            df[f'open_{i}_{measure}'] = bars[measure] / price - 1
 
     # Center standard deviation at 0.
     df[[c for c in df.columns if c.endswith('_std')]] += 1
