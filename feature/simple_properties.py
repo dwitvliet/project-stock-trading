@@ -141,29 +141,34 @@ def bar_changes_relative(ticker, date, params):
 
     df = pd.DataFrame(index=bars.index)
 
-    # Relative to now.
-    prefixes = ['price', 'volume']
-    measures = ['median', 'min', 'max', 'std']
+    # Calculate relative to now.
+    measures = ('median', 'min', 'max', 'std')
+    prefixes = ('price', 'volume')
     for prefix in prefixes:
         for measure in measures:
             relative_to = 'price' if prefixes == 'price' else 'volume_mean'
-            df[f'0_{prefix}_{measure}'] = (
+            df[f'0S_{prefix}_{measure}'] = (
                 bars[f'{prefix}_{measure}'] / bars[relative_to] - 1
             )
 
-    # Relative to rolling averages.
-    measures = [
+    # Calculate relative to rolling averages.
+    measures = (
         'price', 'price_min', 'price_max', 'price_std',
         'volume_mean', 'volume_min', 'volume_max', 'volume_std'
-    ]
-    for i in (1, 3, 5, 10, 30, 60, 60*3, 60*5, 60*10, 60*30, 60*60, 60*60*3):
+    )
+    windows = (
+        '1S', '3S', '5S', '10S', '30S',
+        '1min', '3min', '5min', '10min', '30min', '1H', '3H',
+    )
+    for i in windows:
         rolling = bars.shift().rolling(i, min_periods=1)
         for measure in measures:
             df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
 
-    # Relative to time high and low.
-    measures = ['price', 'price_min', 'price_max']
-    for i in (60, 60*3, 60*5, 60*10, 60*30, 60*60, 60*60*3):
+    # Calculate relative to time high and low.
+    measures = ('price', 'price_min', 'price_max')
+    windows = ('1min', '3min', '5min', '10min', '30min', '1H', '3H')
+    for i in windows:
         for measure in measures:
             df[f'{i}_low_{measure}'] = (
                 bars[measure] / rolling['price_min'].min() - 1
