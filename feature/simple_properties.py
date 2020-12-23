@@ -236,5 +236,18 @@ def bar_trends(ticker, date, _):
                 rolling[column].sum() / rolling[column].count()
             )
 
+    # How much time since last decreased.
+    measures = ('price', 'count', 'volume')
+    windows = (
+        '1S', '3S', '5S', '10S', '30S',
+        '1min', '3min', '5min', '10min', '30min'
+    )
+    for i in windows:
+        rolling = bars.rolling(i, min_periods=1).mean()
+        for measure in measures:
+            signs = np.sign(rolling[measure].diff())
+            df[f'{i}_{measure}_since_down'] = signs.eq(1).groupby(
+                (signs != signs.shift()).cumsum()
+            ).transform('cumsum')
 
     return df.reindex(data.get_trading_hours_index(ticker, date))
