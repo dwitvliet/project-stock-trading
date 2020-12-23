@@ -25,7 +25,7 @@ def recent_percentage_changes(ticker, date, params):
 
     # List changes for the most recent prices and volumes.
     dfs = [df]
-    for i in range(1, 60):
+    for i in range(1, periods_to_go_back):
         dfs.append(df.shift(i).add_suffix(f'_{i}S_ago'))
     df = pd.concat(dfs, axis=1, sort=False, copy=False)
 
