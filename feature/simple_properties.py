@@ -112,7 +112,7 @@ def _current_bar(ticker, date):
         ticker, date, extended_hours=True
     ))
 
-    # Weighted mean.
+    # Price (weighted mean).
     bars = bars.join(
         data.get_bars(ticker, date, 'weighted_mean', extended_hours=True)
             .rename('price')
@@ -122,8 +122,13 @@ def _current_bar(ticker, date):
         data.get_bars(ticker, date, 'count', extended_hours=True)['price']
             .rename('count')
     )
+    # Total volume.
+    bars = bars.join(
+        data.get_bars(ticker, date, 'sum', extended_hours=True)['volume']
+            .rename('volume')
+    )
     # Price, volume, and price*volume: mean, median, min, max, std, and sum.
-    for agg in ['mean', 'median', 'min', 'max', 'std', 'sum']:
+    for agg in ['mean', 'median', 'min', 'max', 'std']:
         bars = bars.join(
             data.get_bars(
                 ticker, date, agg, extended_hours=True
@@ -148,15 +153,14 @@ def bar_changes_relative(ticker, date, _):
     prefixes = ('price', 'volume')
     for prefix in prefixes:
         for measure in measures:
-            relative_to = 'price' if prefixes == 'price' else 'volume_mean'
             df[f'0S_{prefix}_{measure}'] = (
-                bars[f'{prefix}_{measure}'] / bars[relative_to] - 1
+                bars[f'{prefix}_{measure}'] / bars[prefix] - 1
             )
 
     # Calculate relative to rolling averages.
     measures = (
         'price', 'price_min', 'price_max', 'price_std', 'count',
-        'volume_mean', 'volume_min', 'volume_max', 'volume_std', 'volume_sum'
+        'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
     )
     windows = (
         '1S', '3S', '5S', '10S', '30S',
@@ -205,8 +209,8 @@ def bar_trends(ticker, date, _):
 
     df = pd.DataFrame(index=bars.index)
 
-    # TODO:
-    #  number of times gone up in the last minute
-    #  and time since last up
-    #  up or down, np.sign
+    # Increase or decrease.
+    for measure in ('price', 'count', 'volume'):
+        df[f'{measure}_inc_sign'] = np.sign(bars[measure].diff())
 
+    return df.reindex(data.get_trading_hours_index(ticker, date))
