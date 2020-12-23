@@ -7,6 +7,31 @@ import data.data_manager as data
 from feature import bar_properties
 
 
+def recent_percentage_changes(ticker, date, params):
+    periods_to_go_back = params.get('periods_to_go_back', 60)
+
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
+    # Determine changes for the current prices and volume.
+    df['price'] = bars['price'].pct_change()
+    measures = (
+        'price_min_relative', 'price_max_relative', 'price_std_relative',
+        'count', 'volume'
+    )
+    for measure in measures:
+        df[measure] = bars[measure].diff()
+
+    # List changes for the most recent prices and volumes.
+    dfs = [df]
+    for i in range(1, 60):
+        dfs.append(df.shift(i).add_suffix(f'_{i}S_ago'))
+    df = pd.concat(dfs, axis=1, sort=False, copy=False)
+
+    return df.reindex(trading_hours)
+
+
 def bar_changes_rolling(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
