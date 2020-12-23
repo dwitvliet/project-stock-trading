@@ -145,6 +145,7 @@ def current_bar_stats(ticker, date, _):
 
 def bar_changes_relative(ticker, date, _):
     bars = _current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
 
     df = pd.DataFrame(index=bars.index)
 
@@ -168,6 +169,8 @@ def bar_changes_relative(ticker, date, _):
     )
     for i in windows:
         rolling = bars.shift().rolling(i, min_periods=1)
+        if i == '1D':
+            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
         for measure in measures:
             df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
 
@@ -176,6 +179,8 @@ def bar_changes_relative(ticker, date, _):
     windows = ('1min', '3min', '5min', '10min', '30min', '1H', '1D')
     for i in windows:
         rolling = bars.shift().rolling(i, min_periods=1)
+        if i == '1D':
+            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
         for measure in measures:
             df[f'{i}_low_{measure}'] = (
                 bars[measure] / rolling['price_min'].min() - 1
@@ -206,11 +211,30 @@ def bar_changes_relative(ticker, date, _):
 
 def bar_trends(ticker, date, _):
     bars = _current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
 
     df = pd.DataFrame(index=bars.index)
 
     # Increase or decrease.
-    for measure in ('price', 'count', 'volume'):
+    measures = ('price', 'count', 'volume')
+    for measure in measures:
         df[f'{measure}_inc_sign'] = np.sign(bars[measure].diff())
+
+    # Proportion of increases in the last seconds/minutes.
+    measures = ('price', 'count', 'volume')
+    windows = (
+        '3S', '5S', '10S', '30S',
+        '1min', '3min', '5min', '10min', '30min', '1H', '1D'
+    )
+    for i in windows:
+        rolling = df.eq(1).rolling(i, min_periods=1)
+        if i == '1D':
+            rolling = df.eq(1).reindex(trading_hours).rolling(i, min_periods=1)
+        for measure in measures:
+            column = f'{measure}_inc_sign'
+            df[f'{i}_{column}'] = (
+                rolling[column].sum() / rolling[column].count()
+            )
+
 
     return df.reindex(data.get_trading_hours_index(ticker, date))
