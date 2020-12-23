@@ -60,7 +60,7 @@ def bar_changes_rolling(ticker, date, _):
     # Center standard deviation at 0.
     df[[c for c in df.columns if c.endswith('_std')]] += 1
 
-    return df.reindex(data.get_trading_hours_index(ticker, date))
+    return df.reindex(trading_hours)
 
 
 def bar_trends(ticker, date, _):
@@ -103,4 +103,4 @@ def bar_trends(ticker, date, _):
                 (signs != signs.shift()).cumsum()
             ).transform('cumsum')
 
-    return df.reindex(data.get_trading_hours_index(ticker, date))
+    return df.reindex(trading_hours)
