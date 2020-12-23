@@ -15,21 +15,18 @@ def absolute_times(ticker, date, _):
     df['minute'] = time_periods.minute
     df['second'] = time_periods.second
 
-    categories = range(1, 4+1)
-    quarters = pd.get_dummies(time_periods.quarter) \
-        .T.reindex(categories).T.fillna(0).astype(int).set_index(time_periods) \
-        .add_prefix('quarter_')
+    categorical_dfs = []
+    categorical_times = [
+        (time_periods.quarter, 'quarter', range(1, 4 + 1)),
+        (time_periods.month, 'month', range(1, 12 + 1)),
+        (time_periods.dayofweek, 'dayofweek', range(1, 4 + 1)),
+    ]
+    for values, prefix, categories in categorical_times:
+        categorical_dfs.append(
+            pd.get_dummies(values)
+            .T.reindex(categories).T.set_index(time_periods)
+            .fillna(0).astype(int)
+            .add_prefix(prefix + '_')
+        )
 
-    categories = range(1, 12+1)
-    months = pd.get_dummies(time_periods.month) \
-        .T.reindex(categories).T.fillna(0).astype(int).set_index(time_periods) \
-        .add_prefix('month_')
-
-    categories = range(0, 4+1)
-    weekdays = pd.get_dummies(time_periods.dayofweek) \
-        .T.reindex(categories).T.fillna(0).astype(int).set_index(time_periods) \
-        .add_prefix('weekday_')
-
-    dfs = [df, quarters, months, weekdays]
-
-    return pd.concat(dfs, axis=1, sort=False, copy=False)
+    return pd.concat([df] + categorical_dfs, axis=1, sort=False, copy=False)
