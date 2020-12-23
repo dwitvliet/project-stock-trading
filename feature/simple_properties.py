@@ -122,8 +122,8 @@ def _current_bar(ticker, date):
         data.get_bars(ticker, date, 'count', extended_hours=True)['price']
             .rename('count')
     )
-    # Price, volume, and price-adjusted volume: mean, median, min, max, std.
-    for agg in ['mean', 'median', 'min', 'max', 'std']:
+    # Price, volume, and price*volume: mean, median, min, max, std, and sum.
+    for agg in ['mean', 'median', 'min', 'max', 'std', 'sum']:
         bars = bars.join(
             data.get_bars(
                 ticker, date, agg, extended_hours=True
@@ -155,8 +155,8 @@ def bar_changes_relative(ticker, date, _):
 
     # Calculate relative to rolling averages.
     measures = (
-        'price', 'price_min', 'price_max', 'price_std',
-        'volume_mean', 'volume_min', 'volume_max', 'volume_std'
+        'price', 'price_min', 'price_max', 'price_std', 'count',
+        'volume_mean', 'volume_min', 'volume_max', 'volume_std', 'volume_sum'
     )
     windows = (
         '1S', '3S', '5S', '10S', '30S',
