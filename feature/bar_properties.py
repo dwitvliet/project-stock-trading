@@ -55,6 +55,9 @@ def current_bar(ticker, date):
                 bars[f'{prefix}_{measure}'] / bars[relative_to] - 1
             )
 
+    # Center standard deviation at 0.
+    bars[[c for c in bars.columns if c.endswith('_std')]] += 1
+
     return bars
 
 
