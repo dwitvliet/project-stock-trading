@@ -32,7 +32,7 @@ def recent_percentage_changes(ticker, date, params):
     return df.reindex(trading_hours)
 
 
-def bar_changes_rolling(ticker, date, _):
+def bar_changes_from_rolling(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -53,6 +53,17 @@ def bar_changes_rolling(ticker, date, _):
         for measure in measures:
             df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
 
+    # Center standard deviation at 0.
+    df[[c for c in df.columns if c.endswith('_std')]] += 1
+
+    return df.reindex(trading_hours)
+
+
+def bar_changes_from_high_and_low(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
     # Calculate relative to time high and low.
     measures = ('price', 'price_min', 'price_max')
     windows = ('1min', '3min', '5min', '10min', '30min', '1H', '1D')
@@ -68,6 +79,14 @@ def bar_changes_rolling(ticker, date, _):
                 bars[measure] / rolling['price_max'].max() - 1
             )
 
+    return df.reindex(trading_hours)
+
+
+def bar_changes_from_open(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
     # Calculate relative to opening of minutes/hour/day.
     measures = ('price', 'price_min', 'price_max')
     last_opens = ('1min', '5min', '10min', '30min', '1H', '1D')
@@ -82,13 +101,10 @@ def bar_changes_rolling(ticker, date, _):
         for measure in measures:
             df[f'open_{i}_{measure}'] = bars[measure] / price - 1
 
-    # Center standard deviation at 0.
-    df[[c for c in df.columns if c.endswith('_std')]] += 1
-
     return df.reindex(trading_hours)
 
 
-def bar_trends(ticker, date, _):
+def bar_up_or_down(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
