@@ -24,19 +24,22 @@ def exchange_for_ticker(ticker):
 
 
 @functools.lru_cache(maxsize=5)
-def get_open_dates(exchange, date_from, date_to):
+def get_open_dates(ticker, date_from, date_to, exclude_future=True):
     """
     Get list of dates within range where exchange is open. Weekends and
     holidays are excluded.
 
     Args:
-        exchange (str): exchange symbol
+        ticker (str): ticker symbol
         date_from (date|str): first date in range (inclusive)
         date_to (date|str): last date in range (inclusive)
+        exclude_future (bool, optional): whether to exclude today and future
+            dates.
     Returns:
         [date, ..]
     """
 
+    exchange = exchange_for_ticker(ticker)
     open_dates = []
 
     # Get holidays.
@@ -51,7 +54,7 @@ def get_open_dates(exchange, date_from, date_to):
         if date in holidays:
             continue
         # Skip today and future days.
-        if (datetime.datetime.now() - date).days <= 0:
+        if exclude_future and (datetime.datetime.now() - date).days <= 0:
             continue
         open_dates.append(date.date())
 
@@ -89,8 +92,7 @@ def get_trading_hours_index(ticker, date, extended_hours=False):
 
 
 def dates_missing_from_database(ticker, date_from, date_to, data_type):
-    exchange = exchange_for_ticker(ticker)
-    dates_with_trades = get_open_dates(exchange, date_from, date_to)
+    dates_with_trades = get_open_dates(ticker, date_from, date_to)
 
     if data_type in ('trades', 'quotes'):
         dates_stored = db.get_stored_dates(data_type, ticker)
@@ -156,8 +158,7 @@ def get_trades(ticker, date_from, date_to=None, data_type='trades'):
 
     download_trades(ticker, date_from, date_to, data_type)
 
-    exchange = exchange_for_ticker(ticker)
-    dates_with_trades = get_open_dates(exchange, date_from, date_to)
+    dates_with_trades = get_open_dates(ticker, date_from, date_to)
     if len(dates_with_trades) == 0:
         logging.info(f'There are no {data_type} for the selected date(s).')
         return
