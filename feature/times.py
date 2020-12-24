@@ -1,6 +1,5 @@
 import datetime
 
-import numpy as np
 import pandas as pd
 
 import data.data_manager as data
@@ -59,5 +58,34 @@ def relative_times(ticker, date, _):
     df['until_quarter_end'] = quarter_dates.date[::-1].tolist().index(date)
     df['since_month_start'] = month_dates.date.tolist().index(date)
     df['until_month_end'] = month_dates.date[::-1].tolist().index(date)
+
+    return df
+
+
+def since_holiday(ticker, date, _):
+
+    open_dates = pd.DatetimeIndex(data.get_open_dates(
+        ticker,
+        datetime.date(date.year, 1, 1),
+        datetime.date(date.year, 12, 31),
+        exclude_future=False
+    ))
+    holidays = data.db.get_holidays(data.exchange_for_ticker(ticker))
+
+    df = pd.DataFrame(index=data.get_trading_hours_index(ticker, date))
+
+    half_days = [day for day, hours in holidays if hours == 'half']
+    df['is_half_day'] = int(date in half_days)
+
+    timestamp = pd.Timestamp(date)
+    closed_days = pd.DatetimeIndex([d for d, hours in holidays if hours == 'closed'])
+    last_holiday = closed_days[closed_days.get_loc(timestamp, 'ffill')]
+    next_holiday = closed_days[closed_days.get_loc(timestamp, 'bfill')]
+    df['since_holiday'] = open_dates.get_loc(timestamp) - open_dates.get_loc(
+        last_holiday, 'bfill'
+    )
+    df['until_holiday'] = open_dates.get_loc(
+        next_holiday, 'ffill'
+    ) - open_dates.get_loc(timestamp)
 
     return df
