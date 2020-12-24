@@ -95,3 +95,13 @@ date,nye,ngs,sifma,otc,day
 2020-12-24,13:00,13:00,14:00,13:00,Christmas Eve
 2020-12-25,closed,closed,closed,closed,Christmas Day
 2020-12-31,open,open,14:00,open,New Year's Eve
+2021-01-01,closed,closed,closed,,New Year's Day
+2021-01-18,closed,closed,,,Martin Luther King Jr. Day
+2021-02-15,closed,closed,,,Presidents' Day/Washington's Bday
+2021-04-02,closed,closed,,,Good Friday
+2021-05-31,closed,closed,,,Memorial Day
+2021-07-05,closed,closed,,,Independence Day
+2021-09-06,closed,closed,,,Labor Day
+2021-11-25,closed,closed,,,Thanksgiving Day
+2021-11-26,13:00,13:00,,,Day After Thanksgiving
+2021-12-24,closed,closed,,,Christmas
