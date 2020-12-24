@@ -49,7 +49,7 @@ class APIManager:
 
         if result.status_code == 200:
             json = result.json()
-            if json.get('success', True):
+            if type(json) == list or json.get('success', True):
                 return json
         
         if attempts_left == 0:
@@ -119,3 +119,8 @@ class APIManager:
         trades.columns = column_names
 
         return trades
+
+    def get_upcoming_holidays(self):
+        # https://polygon.io/docs/get_v1_marketstatus_upcoming_anchor
+        url = f'/v1/marketstatus/upcoming'
+        return self._request(url)
