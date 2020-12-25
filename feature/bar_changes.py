@@ -7,28 +7,42 @@ import data.data_manager as data
 from feature import bar_properties
 
 
-def recent_percentage_changes(ticker, date, params):
+def recent_bar_changes(ticker, date, params):
     periods_to_go_back = params.get('periods_to_go_back', 60)
 
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
-    df = pd.DataFrame(index=bars.index)
 
-    # Determine changes for the current prices and volume.
-    df['price'] = bars['price'].pct_change()
-    measures = (
+    dfs = []
+
+    dfs.append(bars[['price', 'price_min_relative', 'price_max_relative',
+                    'price_std_relative', 'count', 'volume']])
+
+    # For the most recent bars, determine price and volume changes compared to
+    # the previous bar.
+    bar_changes = pd.DataFrame(index=bars.index)
+    bar_changes['price'] = bars['price'].pct_change()
+    measures = [
         'price_min_relative', 'price_max_relative', 'price_std_relative',
         'count', 'volume'
-    )
+    ]
     for measure in measures:
-        df[measure] = bars[measure].diff()
-
-    # List changes for the most recent prices and volumes.
-    dfs = [df]
+        bar_changes[measure] = bars[measure].diff()
     for i in range(1, periods_to_go_back):
-        dfs.append(df.shift(i).add_suffix(f'_{i}S_ago'))
-    df = pd.concat(dfs, axis=1, sort=False, copy=False)
+        dfs.append(bar_changes.shift(i).add_suffix(f'_{i}S_ago_vs_{i-1}S ago'))
 
+    # For the most recent bars, determine price and volume changes compared to
+    # now.
+    measures = [
+        'price_min_relative', 'price_max_relative', 'price_std_relative',
+        'count', 'volume'
+    ]
+    for i in range(1, periods_to_go_back+1):
+        df = bars[measures].shift(-i) - bars[measures]
+        df['price'] = bars['price'].pct_change(-i)
+        dfs.append(df.add_suffix(f'_{i}S_ago_vs_now'))
+
+    df = pd.concat(dfs, axis=1, sort=False, copy=False)
     return df.reindex(trading_hours)
 
 
@@ -43,7 +57,7 @@ def bar_changes_from_rolling(ticker, date, _):
         'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
     )
     windows = (
-        '3S', '5S', '10S', '30S',
+        '1S', '3S', '5S', '10S', '30S',
         '1min', '3min', '5min', '10min', '30min', '1H', '1D'
     )
     for i in windows:
