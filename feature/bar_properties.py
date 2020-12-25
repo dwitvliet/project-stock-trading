@@ -34,8 +34,8 @@ def current_bar(ticker, date):
     )
     # Total volume.
     bars = bars.join(
-        data.get_bars(ticker, date, 'sum', extended_hours=True)['volume']
-            .rename('volume')
+        data.get_bars(ticker, date, 'sum', extended_hours=True)[['volume', 'dollar_volume']]
+            .rename({'volume_sum': 'volume', 'dollar_volume_sum': 'dollar_volume'})
     )
     # Price, volume, and price*volume: mean, median, min, max, std, and sum.
     for agg in ['mean', 'median', 'min', 'max', 'std']:
