@@ -5,7 +5,7 @@ import pandas as pd
 import data.data_manager as data
 
 
-def absolute_times(ticker, date, _):
+def current_time_and_date(ticker, date, _):
 
     time_periods = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=time_periods)
@@ -34,7 +34,7 @@ def absolute_times(ticker, date, _):
     return pd.concat([df] + categorical_dfs, axis=1, sort=False, copy=False)
 
 
-def relative_times(ticker, date, _):
+def time_since_and_until_start_of(ticker, date, _):
 
     time_periods = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=time_periods)
@@ -62,7 +62,7 @@ def relative_times(ticker, date, _):
     return df
 
 
-def since_holiday(ticker, date, _):
+def time_since_holiday(ticker, date, _):
 
     open_dates = pd.DatetimeIndex(data.get_open_dates(
         ticker,

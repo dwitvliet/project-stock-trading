@@ -7,7 +7,79 @@ import data.data_manager as data
 from feature import bar_properties
 
 
-def recent_bars_compared_to_now(ticker, date, params):
+def current_bar_compared_to_rolling(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
+    # Calculate relative to rolling averages.
+    measures = (
+        'price', 'price_min', 'price_max', 'price_std', 'count',
+        'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
+    )
+    windows = (
+        '1S', '3S', '5S', '10S', '30S',
+        '1min', '3min', '5min', '10min', '30min', '1H', '1D'
+    )
+    for i in windows:
+        rolling = bars.shift().rolling(i, min_periods=1)
+        if i == '1D':
+            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
+        for measure in measures:
+            df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
+
+    # Center standard deviation at 0.
+    df[[c for c in df.columns if c.endswith('_std')]] += 1
+
+    return df.reindex(trading_hours)
+
+
+def current_bar_compared_high_and_low(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
+    # Calculate relative to time high and low.
+    measures = ('price', 'price_min', 'price_max')
+    windows = ('1min', '3min', '5min', '10min', '30min', '1H', '1D')
+    for i in windows:
+        rolling = bars.shift().rolling(i, min_periods=1)
+        if i == '1D':
+            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
+        for measure in measures:
+            df[f'{i}_low_{measure}'] = (
+                bars[measure] / rolling['price_min'].min() - 1
+            )
+            df[f'{i}_high_{measure}'] = (
+                bars[measure] / rolling['price_max'].max() - 1
+            )
+
+    return df.reindex(trading_hours)
+
+
+def current_bar_compared_open(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
+
+    # Calculate relative to opening of minutes/hour/day.
+    measures = ('price', 'price_min', 'price_max')
+    last_opens = ('1min', '5min', '10min', '30min', '1H', '1D')
+    for i in last_opens:
+        price = bars['price'].copy()
+        price[~price.index.isin(pd.date_range(
+            datetime.datetime.combine(date, datetime.time(9, 30)),
+            datetime.datetime.combine(date, datetime.time(16, 0)),
+            freq=i
+        ))] = np.nan
+        price = price.fillna(method='ffill')
+        for measure in measures:
+            df[f'open_{i}_{measure}'] = bars[measure] / price - 1
+
+    return df.reindex(trading_hours)
+
+
+def recent_bars_compared_to_current(ticker, date, params):
     # For the most recent bars, determine price and volume changes compared to
     # now.
     periods_to_go_back = params.get('periods_to_go_back', 60)
@@ -52,79 +124,7 @@ def recent_bars_compared_to_preceding(ticker, date, params):
     return pd.concat(dfs, axis=1, sort=False, copy=False).reindex(trading_hours)
 
 
-def bar_changes_from_rolling(ticker, date, _):
-    bars = bar_properties.current_bar(ticker, date)
-    trading_hours = data.get_trading_hours_index(ticker, date)
-    df = pd.DataFrame(index=bars.index)
-
-    # Calculate relative to rolling averages.
-    measures = (
-        'price', 'price_min', 'price_max', 'price_std', 'count',
-        'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
-    )
-    windows = (
-        '1S', '3S', '5S', '10S', '30S',
-        '1min', '3min', '5min', '10min', '30min', '1H', '1D'
-    )
-    for i in windows:
-        rolling = bars.shift().rolling(i, min_periods=1)
-        if i == '1D':
-            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
-        for measure in measures:
-            df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
-
-    # Center standard deviation at 0.
-    df[[c for c in df.columns if c.endswith('_std')]] += 1
-
-    return df.reindex(trading_hours)
-
-
-def bar_changes_from_high_and_low(ticker, date, _):
-    bars = bar_properties.current_bar(ticker, date)
-    trading_hours = data.get_trading_hours_index(ticker, date)
-    df = pd.DataFrame(index=bars.index)
-
-    # Calculate relative to time high and low.
-    measures = ('price', 'price_min', 'price_max')
-    windows = ('1min', '3min', '5min', '10min', '30min', '1H', '1D')
-    for i in windows:
-        rolling = bars.shift().rolling(i, min_periods=1)
-        if i == '1D':
-            rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
-        for measure in measures:
-            df[f'{i}_low_{measure}'] = (
-                bars[measure] / rolling['price_min'].min() - 1
-            )
-            df[f'{i}_high_{measure}'] = (
-                bars[measure] / rolling['price_max'].max() - 1
-            )
-
-    return df.reindex(trading_hours)
-
-
-def bar_changes_from_open(ticker, date, _):
-    bars = bar_properties.current_bar(ticker, date)
-    trading_hours = data.get_trading_hours_index(ticker, date)
-    df = pd.DataFrame(index=bars.index)
-
-    # Calculate relative to opening of minutes/hour/day.
-    measures = ('price', 'price_min', 'price_max')
-    last_opens = ('1min', '5min', '10min', '30min', '1H', '1D')
-    for i in last_opens:
-        price = bars['price'].copy()
-        price[~price.index.isin(pd.date_range(
-            datetime.datetime.combine(date, datetime.time(9, 30)),
-            datetime.datetime.combine(date, datetime.time(16, 0)),
-            freq=i
-        ))] = np.nan
-        price = price.fillna(method='ffill')
-        for measure in measures:
-            df[f'open_{i}_{measure}'] = bars[measure] / price - 1
-
-    return df.reindex(trading_hours)
-
-
-def bar_up_or_down(ticker, date, _):
+def recent_bars_up_or_down(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)

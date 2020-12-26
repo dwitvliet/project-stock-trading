@@ -6,7 +6,7 @@ import pandas as pd
 import data.data_manager as data
 
 
-def recent_trades(ticker, date, params):
+def recent_top_trades(ticker, date, params):
     """ Get details of recent trades for each second during the selected date.
 
     For each timepoint, a number of the most recent trades are selected and
