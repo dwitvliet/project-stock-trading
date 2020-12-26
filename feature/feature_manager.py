@@ -12,7 +12,7 @@ class FeatureManager:
         self.ticker = ticker
         self.features = {}
 
-    def new(self, name=None, func=None, params=None, desc=None):
+    def add(self, name=None, func=None, params=None, desc=None):
         assert name is not None and func is not None, (
             'A name and function is required for a feature.'
         )
@@ -23,12 +23,17 @@ class FeatureManager:
             params = {}
         if desc is None:
             desc = func.__doc__
+
         self.features[name] = {
-            'name': name.replace(' ', '_'),
+            'name': name.replace(' ', '_').lower(),
             'func': func,
-            'desc': desc,
             'params': params,
+            'desc': desc.split('Params:')[0],  # exclude params from docstring
         }
+
+    def add_many(self, features):
+        for feature in features:
+            self.add(*feature)
 
     def generate(self, date_from, date_to):
         """ Generates all registered features and stores them in the database.
