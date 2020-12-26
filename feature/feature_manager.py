@@ -12,7 +12,7 @@ class FeatureManager:
         self.ticker = ticker
         self.features = {}
 
-    def new(self, desc=None, name=None, func=None, params=None):
+    def new(self, name=None, func=None, params=None, desc=None):
         assert name is not None and func is not None, (
             'A name and function is required for a feature.'
         )
@@ -21,6 +21,8 @@ class FeatureManager:
         )
         if params is None:
             params = {}
+        if desc is None:
+            desc = func.__doc__
         self.features[name] = {
             'name': name,
             'func': func,
