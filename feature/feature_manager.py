@@ -74,6 +74,7 @@ class FeatureManager:
                 result = feature['func'](self.ticker, date, feature['params'])
                 if type(result) == pd.Series:
                     result = result.rename('').to_frame()
+                logging.info(feature_name, result.shape)
 
                 # Ensure no accidentally left in NaNs or infinite values.
                 result = result.replace([np.inf, -np.inf], np.nan)
