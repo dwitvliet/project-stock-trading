@@ -24,7 +24,7 @@ class FeatureManager:
         if desc is None:
             desc = func.__doc__
         self.features[name] = {
-            'name': name,
+            'name': name.replace(' ', '_'),
             'func': func,
             'desc': desc,
             'params': params,
