@@ -41,7 +41,7 @@ def current_time_and_date(ticker, date, _):
 
 
 def time_since_and_until_start_of(ticker, date, _):
-    """ The time since and until the beginning of an important period.
+    """ The time since and until the beginning of an significant period.
 
     The seconds since trading started for the day and until trading closes for
     the day (may be different on half-days after holidays), as well as the

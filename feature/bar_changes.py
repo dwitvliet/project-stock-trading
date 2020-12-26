@@ -42,7 +42,7 @@ def current_bar_compared_to_rolling(ticker, date, _):
     return df.reindex(trading_hours)
 
 
-def current_bar_compared_high_and_low(ticker, date, _):
+def current_bar_compared_to_high_and_low(ticker, date, _):
     """ Price compared to the previous high and low.
 
     The relative change in the mean, min, and max price compared to the high and
@@ -73,11 +73,11 @@ def current_bar_compared_high_and_low(ticker, date, _):
     return df.reindex(trading_hours)
 
 
-def current_bar_compared_open(ticker, date, _):
-    """ Price compared to the opening of the time windows.
+def current_bar_compared_to_open(ticker, date, _):
+    """ Price compared to the beginning of the previous bars.
 
     The relative change in the mean, min, and max price compared to the
-    beginning of the minute, hour, day, and a few time points in between.
+    beginning of the minute, hour, day, and a few refrequencies in between.
 
     """
 
@@ -201,8 +201,8 @@ def proportion_of_increasing_bars(ticker, date, _):
     return df.reindex(trading_hours)
 
 
-def time_since_decreasing_bar(ticker, date, _):
-    """ The time period since the last negative aggregate bar.
+def consecutive_of_increasing_bars(ticker, date, _):
+    """ The number of consequtive bars that increased.
 
     The number of consecutive bars into the past than increased in price, count,
     or volume after applying a moving average smoothing. The time window spans
