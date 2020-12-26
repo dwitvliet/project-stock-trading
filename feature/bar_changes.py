@@ -90,7 +90,7 @@ def recent_bars_compared_to_current(ticker, date, params):
     dfs = []
     measures = [
         'price_min_relative', 'price_max_relative', 'price_std_relative',
-        'count', 'volume'
+        'volume', 'volume_min', 'volume_max', 'volume_mean', 'volume_std'
     ]
     for i in range(1, periods_to_go_back+1):
         df = bars[measures].shift(-i) - bars[measures]
@@ -114,7 +114,7 @@ def recent_bars_compared_to_preceding(ticker, date, params):
     bar_changes['price'] = bars['price'].pct_change()
     measures = [
         'price_min_relative', 'price_max_relative', 'price_std_relative',
-        'count', 'volume'
+        'volume', 'volume_min', 'volume_max', 'volume_mean', 'volume_std'
     ]
     for measure in measures:
         bar_changes[measure] = bars[measure].diff()
@@ -124,7 +124,7 @@ def recent_bars_compared_to_preceding(ticker, date, params):
     return pd.concat(dfs, axis=1, sort=False, copy=False).reindex(trading_hours)
 
 
-def recent_bars_up_or_down(ticker, date, _):
+def recent_bars_increase_or_decrease(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -149,6 +149,14 @@ def recent_bars_up_or_down(ticker, date, _):
             df[f'{i}_{column}'] = (
                 rolling[column].sum() / rolling[column].count()
             )
+
+    return df.reindex(trading_hours)
+
+
+def time_since_decrease(ticker, date, _):
+    bars = bar_properties.current_bar(ticker, date)
+    trading_hours = data.get_trading_hours_index(ticker, date)
+    df = pd.DataFrame(index=bars.index)
 
     # How much time since last decreased.
     measures = ('price', 'count', 'volume')
