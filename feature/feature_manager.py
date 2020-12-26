@@ -1,5 +1,6 @@
 import logging
 
+import numpy as np
 import pandas as pd
 
 import data.data_manager as data
@@ -74,7 +75,8 @@ class FeatureManager:
                 if type(result) == pd.Series:
                     result = result.rename('').to_frame()
 
-                # Ensure no accidentally left in NaNs.
+                # Ensure no accidentally left in NaNs or infinite values.
+                result = result.replace([np.inf, -np.inf], np.nan)
                 nan_counts = result.isna().to_numpy().sum()
                 assert nan_counts == 0, (
                     f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
