@@ -8,6 +8,14 @@ from feature import bar_properties
 
 
 def current_bar_compared_to_rolling(ticker, date, _):
+    """ Price and volume compared to a rolling average of previous periods.
+
+    The relative changes in the mean, min, max, and std of the price and volume
+    compared to a rolling average. The rolling average stretches from 3 seconds
+    to the beginning of the day (but currently not any previous days).
+
+    """
+
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -35,6 +43,14 @@ def current_bar_compared_to_rolling(ticker, date, _):
 
 
 def current_bar_compared_high_and_low(ticker, date, _):
+    """ Price compared to the previous high and low.
+
+    The relative change in the mean, min, and max price compared to the high and
+    low of a previous time window, stretching from a minute to the beginning of
+    the day (currently not any previous days).
+
+    """
+
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -58,6 +74,13 @@ def current_bar_compared_high_and_low(ticker, date, _):
 
 
 def current_bar_compared_open(ticker, date, _):
+    """ Price compared to the opening of the time windows.
+
+    The relative change in the mean, min, and max price compared to the
+    beginning of the minute, hour, day, and a few time points in between.
+
+    """
+
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -80,8 +103,17 @@ def current_bar_compared_open(ticker, date, _):
 
 
 def recent_bars_compared_to_current(ticker, date, params):
-    # For the most recent bars, determine price and volume changes compared to
-    # now.
+    """ Price and volume of recent aggregate bars.
+
+    The price (including min, max, and std) and volume (including mean, min,
+    max, and std) of a number of recent bars normalized to now.
+
+    Params:
+        "periods_to_go_back" (int): The number of periods into the past to use
+            as features.
+
+    """
+
     periods_to_go_back = params.get('periods_to_go_back', 60)
 
     bars = bar_properties.current_bar(ticker, date)
@@ -101,8 +133,16 @@ def recent_bars_compared_to_current(ticker, date, params):
 
 
 def recent_bars_compared_to_preceding(ticker, date, params):
-    # For the most recent bars, determine price and volume changes compared to
-    # the previous bar.
+    """ Price and volume of recent aggregate bars compared to the one before it.
+
+    The price (including min, max, and std) and volume (including mean, min,
+    max, and std) of a number of recent bars compared to the bar preceding it.
+
+    Params:
+        "periods_to_go_back" (int): The number of periods into the past to use
+            as features.
+    """
+
     periods_to_go_back = params.get('periods_to_go_back', 60)
 
     bars = bar_properties.current_bar(ticker, date)
@@ -125,6 +165,14 @@ def recent_bars_compared_to_preceding(ticker, date, params):
 
 
 def proportion_of_increasing_bars(ticker, date, _):
+    """ Proportion of recent bars that increased.
+
+    The proportion of aggregate bars in a time window that increased in price,
+    count, or volume (each a separate feature). The time window spans from 1
+    second to the beginning of the day.
+
+    """
+
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -154,6 +202,14 @@ def proportion_of_increasing_bars(ticker, date, _):
 
 
 def time_since_decreasing_bar(ticker, date, _):
+    """ The time period since the last negative aggregate bar.
+
+    The number of consecutive bars into the past than increased in price, count,
+    or volume after applying a moving average smoothing. The time window spans
+    from 1 second to 30 minutes.
+
+    """
+
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)

@@ -7,17 +7,6 @@ import data.data_manager as data
 
 def current_bar(ticker, date):
 
-    """
-
-    Args:
-        ticker (str): Ticker symbol.
-        date (datetime.date): Date to make aggregate bars for.
-
-    Returns:
-        pd.DataFrame
-
-    """
-
     bars = pd.DataFrame(index=data.get_trading_hours_index(
         ticker, date, extended_hours=True
     ))
@@ -62,5 +51,11 @@ def current_bar(ticker, date):
 
 
 def current_bar_stats(ticker, date, _):
+    """ Stats of the price and volume of the current time period.
+
+    Mean, median, min, max, and standard deviation of price, volume, and price-
+    adjusted volume (price * volume).
+
+    """
     bars = current_bar(ticker, date)
     return bars.reindex(data.get_trading_hours_index(ticker, date))

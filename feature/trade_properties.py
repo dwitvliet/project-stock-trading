@@ -6,7 +6,7 @@ import pandas as pd
 import data.data_manager as data
 
 
-def recent_top_trades(ticker, date, params):
+def top_recent_trades(ticker, date, params):
     """ Get details of recent trades for each second during the selected date.
 
     For each timepoint, a number of the most recent trades are selected and
@@ -19,16 +19,9 @@ def recent_top_trades(ticker, date, params):
     The top trades by price and volume and the bottom trades by price are
     selected and their properties are returned.
 
-    Args:
-        ticker (str): Ticker symbol.
-        date (datetime.date): Date to label.
-        params (dict):
-            "num_of_trades" (int): The number of recent trades to summarize.
-            "num_of_top_trades" (int): The number of top trades to use as
-                features.
-
-    Returns:
-        pd.DataFrame
+    Params:
+        "num_of_trades" (int): The number of recent trades to summarize.
+        "num_of_top_trades" (int): The number of top trades to use as features.
 
     """
 

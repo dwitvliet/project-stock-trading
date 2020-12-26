@@ -6,6 +6,12 @@ import data.data_manager as data
 
 
 def current_time_and_date(ticker, date, _):
+    """ The time of day and date.
+
+    The second, minute, and hour of the day, as well the day of the week, month,
+    quarter, and year.
+
+    """
 
     time_periods = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=time_periods)
@@ -35,6 +41,14 @@ def current_time_and_date(ticker, date, _):
 
 
 def time_since_and_until_start_of(ticker, date, _):
+    """ The time since and until the beginning of an important period.
+
+    The seconds since trading started for the day and until trading closes for
+    the day (may be different on half-days after holidays), as well as the
+    number of business days since the first and until the last business day of
+    the month, quarter, and year.
+
+    """
 
     time_periods = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=time_periods)
@@ -63,6 +77,14 @@ def time_since_and_until_start_of(ticker, date, _):
 
 
 def time_since_holiday(ticker, date, _):
+    """ The time since a holiday.
+
+    The number days since the last holiday causing exchanges to be closed when
+    it would have otherwise been open. Also includes whether a day is a half-day
+    where the exchanges closes early due to a holiday (e.g. the day after
+    Thanksgiving).
+
+    """
 
     open_dates = pd.DatetimeIndex(data.get_open_dates(
         ticker,
