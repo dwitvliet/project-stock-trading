@@ -15,9 +15,6 @@ def recent_bar_changes(ticker, date, params):
 
     dfs = []
 
-    dfs.append(bars[['price', 'price_min_relative', 'price_max_relative',
-                    'price_std_relative', 'count', 'volume']])
-
     # For the most recent bars, determine price and volume changes compared to
     # the previous bar.
     bar_changes = pd.DataFrame(index=bars.index)
