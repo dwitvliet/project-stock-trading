@@ -124,7 +124,7 @@ def recent_bars_compared_to_preceding(ticker, date, params):
     return pd.concat(dfs, axis=1, sort=False, copy=False).reindex(trading_hours)
 
 
-def recent_bars_increase_or_decrease(ticker, date, _):
+def proportion_of_increasing_bars(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
@@ -153,7 +153,7 @@ def recent_bars_increase_or_decrease(ticker, date, _):
     return df.reindex(trading_hours)
 
 
-def time_since_decrease(ticker, date, _):
+def time_since_decreasing_bar(ticker, date, _):
     bars = bar_properties.current_bar(ticker, date)
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
