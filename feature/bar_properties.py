@@ -31,6 +31,9 @@ def current_bar(ticker, date):
             ticker, date, agg, extended_hours=True
         ).add_suffix('_' + agg)
 
+        # In case of no trades for a bar, fill with the previous bar for
+        # averages, with the mean for min and max, and with 0 for the standard
+        # deviation.
         if agg in ('mean', 'median'):
             df = df.fillna(method='ffill')
         elif agg in ('min', 'max'):

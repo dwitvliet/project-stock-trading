@@ -20,7 +20,9 @@ def current_bar_compared_to_rolling(ticker, date, _):
     trading_hours = data.get_trading_hours_index(ticker, date)
     df = pd.DataFrame(index=bars.index)
 
-    # Calculate relative to rolling averages.
+    # Calculate relative to rolling averages. For all measures except the price,
+    # the absolute difference is calculated instead of the relative difference
+    # to prevent infinite values.
     measures = (
         'price', 'price_min_relative', 'price_max_relative', 'price_std_relative',
         'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
