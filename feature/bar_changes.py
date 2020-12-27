@@ -22,8 +22,9 @@ def current_bar_compared_to_rolling(ticker, date, _):
 
     # Calculate relative to rolling averages.
     measures = (
-        'price', 'price_min', 'price_max', 'price_std', 'count',
+        'price', 'price_min_relative', 'price_max_relative', 'price_std_relative',
         'volume', 'volume_mean', 'volume_min', 'volume_max', 'volume_std',
+        'count',
     )
     windows = (
         '1S', '3S', '5S', '10S', '30S',
@@ -34,10 +35,10 @@ def current_bar_compared_to_rolling(ticker, date, _):
         if i == '1D':
             rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
         for measure in measures:
-            df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
-
-    # Center standard deviation at 0.
-    df[[c for c in df.columns if c.endswith('_std')]] += 1
+            if measure == 'price':
+                df[f'{i}_{measure}'] = bars[measure] / rolling[measure].mean() - 1
+            else:
+                df[f'{i}_{measure}'] = bars[measure] - rolling[measure].mean()
 
     return df.reindex(trading_hours)
 
