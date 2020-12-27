@@ -203,10 +203,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     bars = bars.shift(1)
 
     # Fill blanks.
-    if agg in ('weighted_mean', 'mean', 'median'):
-        bars = bars.fillna(method='ffill')
-    elif agg in ('sum', 'min', 'max', 'std'):
-        bars = bars.fillna(0)
+    bars = bars.fillna(method='ffill')
 
     if smooth_periods > 1:
         bars = bars.rolling(smooth_periods).mean()
