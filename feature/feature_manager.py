@@ -73,7 +73,7 @@ class FeatureManager:
 
         for timestamp, features in dates_to_generate.iterrows():
             date = timestamp.date()
-            logging.info(f'Generating {features.sum()} feature(s) for {date}')
+            logging.info(f'Generating {features.sum()} feature(s) for {date}:')
             for feature_name in features[features].index:
                 feature = self.features[feature_name]
 
@@ -82,7 +82,7 @@ class FeatureManager:
                 if type(result) == pd.Series:
                     result = result.rename('').to_frame()
                 logging.info(
-                    f'`{feature_name}` with {result.shape[1]} sub-features'
+                    f'`{feature_name}` with {result.shape[1]} sub-feature(s).'
                 )
 
                 # Ensure no accidentally left in NaNs or infinite values.
