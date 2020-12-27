@@ -99,12 +99,7 @@ class FeatureManager:
                 )
 
                 # Store results in database.
-                for col_name in result.columns:
-                    subfeature_name = feature_name
-                    if col_name != '':
-                        subfeature_name += '__' + col_name
+                if result.columns.size > 1:
+                    result.add_prefix(feature_name + '__')
 
-                    values = result[col_name]
-                    data.db.store_feature(
-                        self.ticker, subfeature_name, values, feature['desc']
-                    )
+                data.db.store_features(self.ticker, result, feature['desc'])

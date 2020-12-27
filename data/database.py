@@ -332,46 +332,52 @@ class Database:
             .dt.tz_localize(None)
         return df.drop('timestamp', axis=1)
 
-    def store_feature(self, ticker, name, series, description=None):
+    def store_features(self, ticker, df, description):
         ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
-            # Insert feature name and description.
+            # Insert feature names and description.
             query = f'''
                 INSERT INTO features (ticker_id, name, description) 
                 VALUES (%s, %s, %s)
                 ON DUPLICATE KEY UPDATE description=description
             '''
-            values = (ticker_id, name, description)
-            con.execute(query, values)
-            
+            values = [(ticker_id, col, description) for col in df.columns]
+            con.executemany(query, values)
+
             # Get unique id of feature.
             query = f'''
-                SELECT id
+                SELECT name, id
                 FROM features
                 WHERE ticker_id = "{ticker_id}"
-                AND name = "{name}"
+                AND name IN ("{'", "'.join(df.columns)}")
             '''
             con.execute(query)
-            (feature_id, ) = con.fetchone()
+            df = df.rename(dict(con.fetchall()), axis=1)
 
             # Insert summary of feature values.
             query = f'''
                 INSERT INTO feature_values_summary (feature_id, date) 
                 VALUES (%s, %s)
             '''
-            values = [(feature_id, date) for date in set(series.index.date)]
+            dates = set(df.index.date)
+            values = [
+                (feature_id, date)
+                for date in dates
+                for feature_id in df.columns
+            ]
             con.executemany(query, values)
-            
+
             # Insert feature values.
             query = f'''
-                INSERT INTO feature_values (feature_id, time, value) 
+                INSERT INTO feature_values (feature_id, time, value)
                 VALUES (%s, %s, %s)
             '''
+            time_index = df.index.to_pydatetime()
             values = [
-                (feature_id, time.to_pydatetime(), value)
-                for time, value
-                in series.iteritems()
+                (feature_id, time, value)
+                for feature_id in df.columns
+                for (time, value) in zip(time_index, df[feature_id].to_numpy())
             ]
             con.executemany(query, values)
 
