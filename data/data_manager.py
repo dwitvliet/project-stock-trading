@@ -202,9 +202,6 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
         bars = trades.groupby(grouper).agg(agg)
     bars = bars.shift(1)
 
-    # Fill blanks.
-    bars = bars.fillna(method='ffill')
-
     if smooth_periods > 1:
         bars = bars.rolling(smooth_periods).mean()
 

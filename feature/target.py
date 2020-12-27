@@ -37,7 +37,7 @@ def label_buy_or_sell(ticker, date, params):
     # Get price aggregates per second.
     bars = data.get_bars(
         ticker, date, agg='weighted_mean', smooth_periods=smooth_periods
-    )
+    ).fillna(method='ffill')
 
     # Get local minima and maxima (extrema) for the time series.
     minima_and_maxima = np.sort(np.concatenate([

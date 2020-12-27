@@ -1,5 +1,3 @@
-import datetime
-
 import pandas as pd
 
 import data.data_manager as data
@@ -11,28 +9,38 @@ def current_bar(ticker, date):
         ticker, date, extended_hours=True
     ))
 
-    # Price (weighted mean).
-    bars = bars.join(
+    # Price (weighted mean), count, and volume.
+    bars = bars.join([
         data.get_bars(ticker, date, 'weighted_mean', extended_hours=True)
             .rename('price')
-    )
-    # Count.
-    bars = bars.join(
+            .fillna(method='ffill'),
         data.get_bars(ticker, date, 'count', extended_hours=True)['price']
             .rename('count')
-    )
-    # Total volume.
-    bars = bars.join(
-        data.get_bars(ticker, date, 'sum', extended_hours=True)[['volume', 'dollar_volume']]
-            .rename({'volume_sum': 'volume', 'dollar_volume_sum': 'dollar_volume'})
-    )
+            .fillna(0),
+        data.get_bars(ticker, date, 'sum', extended_hours=True)['volume']
+            .rename('volume')
+            .fillna(0),
+        data.get_bars(ticker, date, 'sum', extended_hours=True)['dollar_volume']
+            .rename('dollar_volume')
+            .fillna(0),
+    ])
+
     # Price, volume, and price*volume: mean, median, min, max, std, and sum.
     for agg in ['mean', 'median', 'min', 'max', 'std']:
-        bars = bars.join(
-            data.get_bars(
-                ticker, date, agg, extended_hours=True
-            ).add_suffix('_' + agg)
-        )
+        df = data.get_bars(
+            ticker, date, agg, extended_hours=True
+        ).add_suffix('_' + agg)
+
+        if agg in ('mean', 'median'):
+            df = df.fillna(method='ffill')
+        elif agg in ('min', 'max'):
+            for prefix in ('price', 'volume', 'dollar_volume'):
+                fill_with = bars[prefix + ('' if prefix == 'price' else '_mean')]
+                df[f'{prefix}_{agg}'] = df[f'{prefix}_{agg}'].fillna(fill_with)
+        elif agg in ('std',):
+            df = df.fillna(0)
+
+        bars = bars.join(df)
 
     # Stats relative to mean.
     measures = ('median', 'min', 'max', 'std')

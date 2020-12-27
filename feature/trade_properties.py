@@ -32,7 +32,7 @@ def top_recent_trades(ticker, date, params):
     trades = data.get_trades(ticker, date)
     bars = data.get_bars(
         ticker, date, agg='weighted_mean', smooth_periods=3, extended_hours=True
-    )
+    ).fillna(method='ffill')
     trade_hours_index = data.get_trading_hours_index(ticker, date)
 
     # Convert all data to numpy ndarrays outside loop for better performance.
