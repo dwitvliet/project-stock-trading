@@ -75,7 +75,7 @@ class FeatureManager:
             date = timestamp.date()
             dfs = []
             descriptions = {}
-            logging.info(f'Generating {features.sum()} feature(s) for {date}:')
+            logging.info(f'Generating {features.sum()} feature(s) for {date}.')
             for feature_name in features[features].index:
                 feature = self.features[feature_name]
 
@@ -83,9 +83,6 @@ class FeatureManager:
                 df = feature['func'](self.ticker, date, feature['params'])
                 if type(df) == pd.Series:
                     df = df.rename('').to_frame()
-                logging.info(
-                    f'`{feature_name}` with {df.shape[1]} sub-feature(s).'
-                )
 
                 # Ensure no accidentally left in NaNs or infinite values.
                 df = df.replace([np.inf, -np.inf], np.nan)
@@ -108,8 +105,14 @@ class FeatureManager:
                     descriptions[col] = feature['desc']
                 dfs.append(df)
 
+            logging.info(
+                f'Inserting {df.shape[1]} sub-feature(s) into the database.'
+            )
+
             data.db.store_features(
                 self.ticker,
                 pd.concat(dfs, axis=1, sort=False, copy=False),
                 descriptions
             )
+
+        logging.info('Feature generation completed.')
