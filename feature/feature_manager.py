@@ -102,7 +102,7 @@ class FeatureManager:
 
                 # Store results in database.
                 if df.columns.size > 1:
-                    df.add_prefix(feature_name + '__')
+                    df = df.add_prefix(feature_name + '__')
 
                 for col in df.columns:
                     descriptions[col] = feature['desc']
