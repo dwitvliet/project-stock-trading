@@ -108,14 +108,11 @@ class FeatureManager:
                     descriptions[col] = feature['desc']
                 dfs.append(df)
 
+            df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
             logging.info(
-                f'Inserting {df.shape[1]} sub-feature(s) into the database.'
+                f'Inserting {df_final.shape[1]} sub-feature(s) into the database.'
             )
 
-            data.db.store_features(
-                self.ticker,
-                pd.concat(dfs, axis=1, sort=False, copy=False),
-                descriptions
-            )
+            data.db.store_features(self.ticker, df_final, descriptions)
 
         logging.info('Feature generation completed.')
