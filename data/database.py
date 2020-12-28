@@ -1,6 +1,7 @@
 import os
 import functools
 import logging
+import tempfile
 
 import mysql.connector
 import pandas as pd
@@ -40,7 +41,7 @@ class Database:
     
     def __enter__(self):
         self._connection = mysql.connector.connect(
-            **self._credentials, autocommit=True
+            **self._credentials, autocommit=True, allow_local_infile=True
         )
         self._cursor = self._connection.cursor(**self._cursor_kwargs)
         return self._cursor
@@ -368,18 +369,21 @@ class Database:
             ]
             con.executemany(query, values)
 
-            # Insert feature values.
-            query = f'''
-                INSERT INTO feature_values (time, feature_id, value)
-                VALUES (%s, %s, %s)
-            '''
-            time_index = df.index.to_pydatetime()
-            values = sorted([  # sort to primary key order to speed up insert
-                (time, feature_id, value)
-                for feature_id in df.columns
-                for (time, value) in zip(time_index, df[feature_id].to_numpy().tolist())
-            ])
-            con.executemany(query, values)
+            df = df.rename_axis('time', index=True) \
+                .reset_index() \
+                .melt(id_vars='time', var_name='feature_id') \
+                .sort_values(['time', 'feature_id'])
+
+            with tempfile.NamedTemporaryFile() as temp:
+
+                df.to_csv(temp.name, sep='\t', index=False)
+                temp.flush()
+
+                con.execute(
+                    f'LOAD DATA LOCAL INFILE "{temp.name}" '
+                    'INTO TABLE feature_values IGNORE 1 LINES'
+                )
+
 
     def _get_feature_ids(self, ticker, feature):
         query = f'''
