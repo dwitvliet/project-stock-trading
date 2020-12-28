@@ -73,33 +73,43 @@ class FeatureManager:
 
         for timestamp, features in dates_to_generate.iterrows():
             date = timestamp.date()
+            dfs = []
+            descriptions = {}
             logging.info(f'Generating {features.sum()} feature(s) for {date}:')
             for feature_name in features[features].index:
                 feature = self.features[feature_name]
 
                 # Generate a dataframe of results for the feature.
-                result = feature['func'](self.ticker, date, feature['params'])
-                if type(result) == pd.Series:
-                    result = result.rename('').to_frame()
+                df = feature['func'](self.ticker, date, feature['params'])
+                if type(df) == pd.Series:
+                    df = df.rename('').to_frame()
                 logging.info(
-                    f'`{feature_name}` with {result.shape[1]} sub-feature(s).'
+                    f'`{feature_name}` with {df.shape[1]} sub-feature(s).'
                 )
 
                 # Ensure no accidentally left in NaNs or infinite values.
-                result = result.replace([np.inf, -np.inf], np.nan)
-                nan_counts = result.isna().to_numpy().sum()
+                df = df.replace([np.inf, -np.inf], np.nan)
+                nan_counts = df.isna().to_numpy().sum()
                 assert nan_counts == 0, (
                     f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
                     f' NaN values for date {date}.'
                 )
 
                 # Ensure all sub-feature names are unique.
-                assert result.columns.size == result.columns.unique().size, (
+                assert df.columns.size == df.columns.unique().size, (
                     f'Not all feature names for `{feature_name}` are unique.'
                 )
 
                 # Store results in database.
-                if result.columns.size > 1:
-                    result.add_prefix(feature_name + '__')
+                if df.columns.size > 1:
+                    df.add_prefix(feature_name + '__')
 
-                data.db.store_features(self.ticker, result, feature['desc'])
+                for col in df.columns:
+                    descriptions[col] = feature['desc']
+                dfs.append(df)
+
+            data.db.store_features(
+                self.ticker,
+                pd.concat(dfs, axis=1, sort=False, copy=False),
+                descriptions
+            )

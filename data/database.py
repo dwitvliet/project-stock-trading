@@ -332,7 +332,7 @@ class Database:
             .dt.tz_localize(None)
         return df.drop('timestamp', axis=1)
 
-    def store_features(self, ticker, df, description):
+    def store_features(self, ticker, df, descriptions):
         ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
@@ -342,7 +342,7 @@ class Database:
                 VALUES (%s, %s, %s)
                 ON DUPLICATE KEY UPDATE description=description
             '''
-            values = [(ticker_id, col, description) for col in df.columns]
+            values = [(ticker_id, col, descriptions[col]) for col in df.columns]
             con.executemany(query, values)
 
             # Get unique id of feature.
