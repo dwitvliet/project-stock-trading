@@ -83,7 +83,7 @@ class FeatureManager:
                 # Generate a dataframe of results for the feature.
                 df = feature['func'](self.ticker, date, feature['params'])
                 if type(df) == pd.Series:
-                    df = df.rename('').to_frame()
+                    df = df.rename(feature_name).to_frame()
 
                 # Ensure no accidentally left in NaNs or infinite values.
                 df = df.replace([np.inf, -np.inf], np.nan)
