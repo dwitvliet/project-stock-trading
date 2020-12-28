@@ -370,15 +370,15 @@ class Database:
 
             # Insert feature values.
             query = f'''
-                INSERT INTO feature_values (feature_id, time, value)
+                INSERT INTO feature_values (time, feature_id, value)
                 VALUES (%s, %s, %s)
             '''
             time_index = df.index.to_pydatetime()
-            values = [
-                (feature_id, time, value)
+            values = sorted([  # sort to primary key order to speed up insert
+                (time, feature_id, value)
                 for feature_id in df.columns
                 for (time, value) in zip(time_index, df[feature_id].to_numpy())
-            ]
+            ])
             con.executemany(query, values)
 
     def _get_feature_ids(self, ticker, feature):
