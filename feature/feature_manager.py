@@ -16,6 +16,7 @@ class FeatureManager:
         assert name is not None and func is not None, (
             'A name and function is required for a feature.'
         )
+        name = name.replace(' ', '_').lower()
         assert name not in self.features, (
             f'Feature `{name}` ({self.ticker}) has already been registered.'
         )
@@ -25,7 +26,7 @@ class FeatureManager:
             desc = func.__doc__
 
         self.features[name] = {
-            'name': name.replace(' ', '_').lower(),
+            'name': name,
             'func': func,
             'params': params,
             'desc': desc.split('Params:')[0],  # exclude params from docstring
@@ -67,8 +68,8 @@ class FeatureManager:
         dates_to_generate = dates_to_generate[dates_to_generate.sum(axis=1) > 0]
         if dates_to_generate.size == 0:
             logging.info(
-                f'All days of from {date_from} to {date_to} already have the '
-                f'{len(self.features)} registered feature(s) stored.'
+                f'The {len(self.features)} feature(s) are already stored for '
+                f'{date_from} to {date_to}.'
             )
 
         for timestamp, features in dates_to_generate.iterrows():
@@ -99,7 +100,9 @@ class FeatureManager:
 
                 # Store results in database.
                 if df.columns.size > 1:
-                    df = df.add_prefix(feature_name + '__')
+                    df = df.add_prefix(
+                        feature_name + '__'
+                    )
 
                 for col in df.columns:
                     descriptions[col] = feature['desc']

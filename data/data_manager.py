@@ -96,7 +96,7 @@ def dates_missing_from_database(ticker, date_from, date_to, data_type):
 
     if data_type in ('trades', 'quotes'):
         dates_stored = db.get_stored_dates(data_type, ticker)
-    else:
+    else:  # features
         dates_stored = db.get_stored_dates_for_feature(ticker, data_type)
 
     return [d for d in dates_with_trades if d not in dates_stored]
