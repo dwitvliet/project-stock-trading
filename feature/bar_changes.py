@@ -67,10 +67,10 @@ def current_bar_compared_to_high_and_low(ticker, date, _):
             rolling = bars.shift().reindex(trading_hours).rolling(i, min_periods=1)
         for measure in measures:
             df[f'{i}_low_{measure}'] = (
-                bars[measure] / rolling['price_min'].min() - 1
+                bars[measure] / rolling['price'].min() - 1
             )
             df[f'{i}_high_{measure}'] = (
-                bars[measure] / rolling['price_max'].max() - 1
+                bars[measure] / rolling['price'].max() - 1
             )
 
     return df.reindex(trading_hours)
