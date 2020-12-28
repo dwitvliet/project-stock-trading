@@ -141,13 +141,13 @@ class Database:
             
             con.execute('''
                 CREATE TABLE IF NOT EXISTS feature_values (
-                    feature_id INT NOT NULL,
                     time DATETIME NOT NULL,
+                    feature_id INT NOT NULL,
                     value DOUBLE NOT NULL,
-                    PRIMARY KEY (feature_id, time), 
-                    FOREIGN KEY (feature_id) REFERENCES features(id),
-                    KEY trades_select_by_name (feature_id, time, value),
-                    KEY trades_select_by_time (time, feature_id, value)
+                    PRIMARY KEY (time, feature_id)
+                    # Foreign key excluded as it slows down inserts and is 
+                    # enforced at the summary level.
+                    # FOREIGN KEY (feature_id) REFERENCES features(id)
                 ) ENGINE=INNODB;
             ''')
 
