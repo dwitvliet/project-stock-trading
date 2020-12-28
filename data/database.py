@@ -377,7 +377,7 @@ class Database:
             values = sorted([  # sort to primary key order to speed up insert
                 (time, feature_id, value)
                 for feature_id in df.columns
-                for (time, value) in zip(time_index, df[feature_id].to_numpy())
+                for (time, value) in zip(time_index, df[feature_id].to_numpy().tolist())
             ])
             con.executemany(query, values)
 
