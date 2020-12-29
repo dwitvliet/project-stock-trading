@@ -412,26 +412,3 @@ class Database:
             con.execute(query)
             dates = [row[0] for row in con.fetchall()]
         return dates
-#
-#
-#
-#
-#
-# import time
-# credentials = {
-#   'host': 'localhost',
-#   'database': 'trades',
-#   'user': 'trades',
-#   'password': 'password',
-# }
-# db = Database(credentials)
-# query = f'''
-#     SELECT timestamp, price, volume
-#     FROM trades
-# '''
-# time_before = time.time()
-# with db as con:
-#     con.execute(query)
-#     a = con.fetchall()
-    
-# print(time.time()-time_before)
