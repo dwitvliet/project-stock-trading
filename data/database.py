@@ -384,7 +384,6 @@ class Database:
                     'INTO TABLE feature_values IGNORE 1 LINES'
                 )
 
-
     def _get_feature_ids(self, ticker, feature):
         query = f'''
             SELECT id
