@@ -14,7 +14,7 @@ class FeatureManager:
 
     def add(self, name=None, func=None, params=None, desc=None):
         assert name is not None and func is not None, (
-            'A name and function is required for a feature.'
+            'A name and function is required for a features.'
         )
         name = name.replace(' ', '_').lower()
         assert name not in self.features, (
@@ -40,7 +40,7 @@ class FeatureManager:
         """ Generates all registered features and stores them in the database.
 
         As many features use the same data fetched from database, taking
-        advantage of cached objects can significantly speed up the feature
+        advantage of cached objects can significantly speed up the features
         generation process. Therefore, all features are generated for one date
         before moving on to the next.
 
@@ -64,11 +64,11 @@ class FeatureManager:
                 feature_name
             ] = True
 
-        # For each date with features to be generated, iterate each feature.
+        # For each date with features to be generated, iterate each features.
         dates_to_generate = dates_to_generate[dates_to_generate.sum(axis=1) > 0]
         if dates_to_generate.size == 0:
             logging.info(
-                f'The {len(self.features)} feature(s) are already stored for '
+                f'The {len(self.features)} features(s) are already stored for '
                 f'{date_from} to {date_to}.'
             )
 
@@ -76,11 +76,11 @@ class FeatureManager:
             date = timestamp.date()
             dfs = []
             descriptions = {}
-            logging.info(f'Generating {features.sum()} feature(s) for {date}.')
+            logging.info(f'Generating {features.sum()} features(s) for {date}.')
             for feature_name in features[features].index:
                 feature = self.features[feature_name]
 
-                # Generate a dataframe of results for the feature.
+                # Generate a dataframe of results for the features.
                 df = feature['func'](self.ticker, date, feature['params'])
                 if type(df) == pd.Series:
                     df = df.rename(feature_name).to_frame()
@@ -93,9 +93,9 @@ class FeatureManager:
                     f' NaN values for date {date}.'
                 )
 
-                # Ensure all sub-feature names are unique.
+                # Ensure all sub-features names are unique.
                 assert df.columns.size == df.columns.unique().size, (
-                    f'Not all feature names for `{feature_name}` are unique.'
+                    f'Not all features names for `{feature_name}` are unique.'
                 )
 
                 # Store results in database.
@@ -110,7 +110,7 @@ class FeatureManager:
 
             df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
             logging.info(
-                f'Inserting {df_final.shape[1]} sub-feature(s) into the '
+                f'Inserting {df_final.shape[1]} sub-features(s) into the '
                 f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
             )
 

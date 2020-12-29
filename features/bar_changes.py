@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 import data.data_manager as data
-from feature import bar_properties
+from features import bar_properties
 
 
 def current_bar_compared_to_rolling(ticker, date, _):
@@ -171,7 +171,7 @@ def proportion_of_increasing_bars(ticker, date, _):
     """ Proportion of recent bars that increased.
 
     The proportion of aggregate bars in a time window that increased in price,
-    count, or volume (each a separate feature). The time window spans from 1
+    count, or volume (each a separate features). The time window spans from 1
     second to the beginning of the day.
 
     """
