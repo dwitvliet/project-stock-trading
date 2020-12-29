@@ -8,14 +8,6 @@ CREATE TABLE IF NOT EXISTS tickers (
     KEY tickers_select_id (ticker, id)
 ) ENGINE=INNODB;
 
-CREATE TABLE IF NOT EXISTS summary (
-    table_name VARCHAR(10) NOT NULL,
-    ticker_id TINYINT UNSIGNED NOT NULL,
-    date DATE NOT NULL,
-    PRIMARY KEY (table_name, ticker_id, date),
-    FOREIGN KEY (ticker_id) REFERENCES tickers(id)
-) ENGINE=INNODB;
-
 CREATE TABLE IF NOT EXISTS trades (
     id INT NOT NULL AUTO_INCREMENT,
     ticker_id TINYINT UNSIGNED NOT NULL,
@@ -47,6 +39,15 @@ CREATE TABLE IF NOT EXISTS quotes (
     )
 ) ENGINE=INNODB;
 
+-- Summary table for trades and quotes.
+CREATE TABLE IF NOT EXISTS summary (
+    table_name VARCHAR(10) NOT NULL,
+    ticker_id TINYINT UNSIGNED NOT NULL,
+    date DATE NOT NULL,
+    PRIMARY KEY (table_name, ticker_id, date),
+    FOREIGN KEY (ticker_id) REFERENCES tickers(id)
+) ENGINE=INNODB;
+
 CREATE TABLE IF NOT EXISTS holidays (
     exchange VARCHAR(10) NOT NULL,
     date DATE NOT NULL,
@@ -73,11 +74,12 @@ CREATE TABLE IF NOT EXISTS feature_values (
     feature_id INT NOT NULL,
     value DOUBLE NOT NULL,
     PRIMARY KEY (time, feature_id)
-    # Foreign key excluded as it slows down inserts and is
-    # enforced at the summary level.
-    # FOREIGN KEY (feature_id) REFERENCES features(id)
+    -- Foreign key excluded as it slows down inserts and is
+    -- enforced at the summary level.
+    -- FOREIGN KEY (feature_id) REFERENCES features(id)
 ) ENGINE=INNODB;
 
+-- Summary table for feature values.
 CREATE TABLE IF NOT EXISTS feature_values_summary (
     feature_id INT NOT NULL,
     date DATE NOT NULL,
