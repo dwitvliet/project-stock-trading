@@ -73,7 +73,8 @@ CREATE TABLE IF NOT EXISTS feature_values (
     time DATETIME NOT NULL,
     feature_id INT NOT NULL,
     value DOUBLE NOT NULL,
-    PRIMARY KEY (time, feature_id)
+    PRIMARY KEY (time, feature_id),
+    KEY feature_values_select_by_time (time, feature_id, value)
     -- Foreign key excluded as it slows down inserts and is
     -- enforced at the summary level.
     -- FOREIGN KEY (feature_id) REFERENCES features(id)
