@@ -11,6 +11,7 @@ class FeatureManager:
     def __init__(self, ticker):
         self.ticker = ticker
         self.features = {}
+        self.df = None
 
     def add(self, name=None, func=None, params=None, desc=None):
         assert name is not None and func is not None, (
@@ -36,7 +37,7 @@ class FeatureManager:
         for feature in features:
             self.add(*feature)
 
-    def generate(self, date_from, date_to):
+    def generate(self, date_from, date_to, save_to_db=True, skip_stored=True):
         """ Generates all registered features and stores them in the database.
 
         As many features use the same data fetched from database, taking
@@ -47,22 +48,33 @@ class FeatureManager:
         Args:
             date_from (Date): First date to generate features for.
             date_to (Date, optional): Last date to generate features for.
+            save_to_db (bool, optional): Whether to store generated features in
+                the database. If False, the generated features are stored in the
+                memory as an object attribute.
+            skip_stored (bool, optional): Whether to skip generating features
+                for dates that are already stored in the database.
 
         """
+
+        generated_features = []
 
         # Check which dates within the date range do not already have generated
         # features.
         dates_to_generate = pd.DataFrame(
-            index=pd.date_range(date_from, date_to),
+            index=data.get_open_dates(self.ticker, date_from, date_to),
             columns=self.features.keys()
-        ).fillna(False)
-        for feature_name in self.features:
-            dates_to_generate.loc[
-                data.dates_missing_from_database(
-                    self.ticker, date_from, date_to, feature_name
-                ),
-                feature_name
-            ] = True
+        )
+        if skip_stored:
+            dates_to_generate = dates_to_generate.fillna(False)
+            for feature_name in self.features:
+                dates_to_generate.loc[
+                    data.dates_missing_from_database(
+                        self.ticker, date_from, date_to, feature_name
+                    ),
+                    feature_name
+                ] = True
+        else:
+            dates_to_generate = dates_to_generate.fillna(True)
 
         # For each date with features to be generated, iterate each features.
         dates_to_generate = dates_to_generate[dates_to_generate.sum(axis=1) > 0]
@@ -72,8 +84,7 @@ class FeatureManager:
                 f'{date_from} to {date_to}.'
             )
 
-        for timestamp, features in dates_to_generate.iterrows():
-            date = timestamp.date()
+        for date, features in dates_to_generate.iterrows():
             dfs = []
             descriptions = {}
             logging.info(f'Generating {features.sum()} features(s) for {date}.')
@@ -109,11 +120,19 @@ class FeatureManager:
                 dfs.append(df)
 
             df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
-            logging.info(
-                f'Inserting {df_final.shape[1]} sub-features(s) into the '
-                f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
-            )
 
-            data.db.store_features(self.ticker, df_final, descriptions)
+            if save_to_db:
+                logging.info(
+                    f'Inserting {df_final.shape[1]} sub-features(s) into the '
+                    f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
+                )
+                data.db.store_features(self.ticker, df_final, descriptions)
+            else:
+                generated_features.append(df_final)
+
+        if not save_to_db and generated_features:
+            self.df = pd.concat(
+                generated_features, axis=0, sort=False, copy=False
+            )
 
         logging.info('Feature generation completed.')
