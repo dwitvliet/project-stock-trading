@@ -2,6 +2,7 @@ import os
 import functools
 import logging
 import tempfile
+import datetime
 
 import mysql.connector
 import pandas as pd
@@ -316,5 +317,20 @@ class Database:
             dates = [row[0] for row in con.fetchall()]
         return dates
 
-    def get_features(self):
-        pass
+    def get_features(self, ticker, date, features=''):
+        feature_ids = self._get_feature_ids(ticker, features)
+
+        query = f'''
+            SELECT time, feature_id, value
+            FROM feature_values
+            WHERE (
+                time BETWEEN {date}
+                AND {date + datetime.timedelta(days=1)}
+            )
+            AND feature_id IN ("{'", "'.join(map(str, feature_ids))}")
+        '''
+
+        with self as con:
+            con.execute(query)
+            result = con.fetchall()
+        return result
