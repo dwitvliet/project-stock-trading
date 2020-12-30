@@ -313,8 +313,8 @@ class Database:
 
         return feature_ids
 
-    def get_stored_dates_for_feature(self, ticker, feature):
-        feature_ids = self._get_feature_ids(ticker, feature)
+    def get_stored_dates_for_feature(self, ticker, features):
+        feature_ids = self._get_feature_ids(ticker, features)
         if len(feature_ids) == 0:
             return feature_ids
 
