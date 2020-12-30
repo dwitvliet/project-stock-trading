@@ -216,7 +216,10 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     return bars
 
 
-def get_features(ticker, date_from, date_to):
+def get_features(ticker, date_from, date_to=None):
+
+    if date_to is None:
+        date_to = date_from
 
     open_dates = get_open_dates(ticker, date_from, date_to)
     dates_with_features = db.get_stored_dates_for_feature(ticker, '')
