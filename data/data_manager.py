@@ -11,7 +11,7 @@ from data.api_manager import APIManager
 from utils import descriptive_stats
 
 
-db = Database(config.database)
+db = Database(config.database, store_features_as_pickle=True)
 api = APIManager(config.api_key)
 
 

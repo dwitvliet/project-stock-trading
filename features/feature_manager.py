@@ -37,7 +37,7 @@ class FeatureManager:
         for feature in features:
             self.add(*feature)
 
-    def generate(self, date_from, date_to, save_to='database', skip_stored=True):
+    def generate(self, date_from, date_to, save_to_db=True, skip_stored=True):
         """ Generates all registered features and stores them in the database.
 
         As many features use the same data fetched from database, taking
@@ -48,8 +48,9 @@ class FeatureManager:
         Args:
             date_from (Date): First date to generate features for.
             date_to (Date, optional): Last date to generate features for.
-            save_to (str, optional): Where to store the generated features. Can
-                be 'database', 'file', or 'memory'.
+            save_to_db (bool, optional): Whether to store generated features in
+                the database. If False, the generated features are stored in the
+                memory as an object attribute.
             skip_stored (bool, optional): Whether to skip generating features
                 for dates that are already stored in the database.
 
@@ -120,19 +121,16 @@ class FeatureManager:
 
             df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
 
-            if save_to in ('database', 'file'):
+            if save_to_db:
                 logging.info(
                     f'Inserting {df_final.shape[1]} sub-features(s) into the '
                     f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
                 )
-                data.db.store_features(
-                    self.ticker, date, df_final, descriptions,
-                    store_as_file=(save_to == 'file')
-                )
+                data.db.store_features(self.ticker, date, df_final, descriptions)
             else:
                 generated_features.append(df_final)
 
-        if save_to == 'memory' and len(generated_features) > 0:
+        if save_to_db and len(generated_features) > 0:
             self.df = pd.concat(
                 generated_features, axis=0, sort=False, copy=False
             )

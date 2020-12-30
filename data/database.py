@@ -30,14 +30,16 @@ class Database:
     
     """
     
-    def __init__(self, credentials, database_file_path='database_files'):
+    def __init__(self, credentials, store_features_as_pickle=False):
         self._credentials = credentials
         self._connection = None
         self._cursor_kwargs = {}
         self._create_tables()
-        self.database_file_path = database_file_path
-        if not os.path.exists(database_file_path):
-            os.mkdir(database_file_path)
+
+        self.store_features_as_pickle = store_features_as_pickle
+        self.database_file_path = 'database_files'
+        if store_features_as_pickle and not os.path.exists(self.database_file_path):
+            os.mkdir(self.database_file_path)
 
     def __call__(self, **kwargs):
         self._cursor_kwargs = kwargs
@@ -240,7 +242,7 @@ class Database:
             .dt.tz_localize(None)
         return df.drop('timestamp', axis=1)
 
-    def store_features(self, ticker, date, df, descriptions, store_as_file=False):
+    def store_features(self, ticker, date, df, descriptions):
         ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
@@ -266,21 +268,21 @@ class Database:
             # Insert summary of feature values.
             query = f'''
                 INSERT INTO feature_values_summary (
-                    feature_id, date, store_as_file
+                    feature_id, date
                 ) 
-                VALUES (%s, %s, %s)
+                VALUES (%s, %s)
             '''
             values = [
-                (feature_id, date, store_as_file)
+                (feature_id, date)
                 for feature_id in df.columns
             ]
             con.executemany(query, values)
 
-            if store_as_file:
+            if self.store_features_as_pickle:
                 file_path = os.path.join(self.database_file_path, ticker)
                 if not os.path.exists(file_path):
                     os.mkdir(file_path)
-                df.to_pickle(os.path.join(file_path, date.isoformat() + '.json'))
+                df.to_pickle(os.path.join(file_path, date.isoformat() + '.pickle'))
 
             else:
                 df = df.rename_axis('time', index=True) \
