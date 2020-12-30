@@ -216,7 +216,6 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     return bars
 
 
-@functools.lru_cache(maxsize=5)
 def get_features(ticker, date_from, date_to):
 
     open_dates = get_open_dates(ticker, date_from, date_to)
