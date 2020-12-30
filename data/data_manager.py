@@ -179,7 +179,7 @@ def get_quotes(ticker, date_from, date_to=None):
 
 @functools.lru_cache(maxsize=20)
 def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
-             extended_hours=False):
+             extended_hours=False, fillna=False):
 
     if type(date) == str:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
@@ -201,6 +201,9 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     else:
         bars = trades.groupby(grouper).agg(agg)
     bars = bars.shift(1)
+
+    if fillna:
+        bars = bars.fillna(method='ffill')
 
     if smooth_periods > 1:
         bars = bars.rolling(smooth_periods).mean()
