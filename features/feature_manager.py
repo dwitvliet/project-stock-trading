@@ -84,6 +84,7 @@ class FeatureManager:
                 f'{date_from} to {date_to}.'
             )
 
+        logging.info(f'Generating features for {len(dates_to_generate)} days.')
         for date, features in dates_to_generate.iterrows():
             dfs = []
             descriptions = {}
