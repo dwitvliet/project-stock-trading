@@ -130,7 +130,7 @@ class FeatureManager:
             else:
                 generated_features.append(df_final)
 
-        if not save_to_db and generated_features:
+        if generated_features and not save_to_db:
             self.df = pd.concat(
                 generated_features, axis=0, sort=False, copy=False
             )

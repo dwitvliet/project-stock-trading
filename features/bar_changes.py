@@ -128,8 +128,8 @@ def recent_bars_compared_to_current(ticker, date, params):
         'volume', 'volume_min', 'volume_max', 'volume_mean', 'volume_std'
     ]
     for i in range(1, periods_to_go_back+1):
-        df = bars[measures].shift(-i) - bars[measures]
-        df['price'] = bars['price'].pct_change(-i)
+        df = bars[measures] - bars[measures].shift(i)
+        df['price'] = bars['price'].pct_change(i)
         dfs.append(df.add_suffix(f'_{i}S_ago_vs_now'))
 
     return pd.concat(dfs, axis=1, sort=False, copy=False).reindex(trading_hours)
