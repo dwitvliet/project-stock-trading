@@ -329,20 +329,28 @@ class Database:
             dates = [row[0] for row in con.fetchall()]
         return dates
 
-    def get_features(self, ticker, date, features=''):
-        feature_ids = self._get_feature_ids(ticker, features)
+    def get_features(self, ticker, date):
 
-        query = f'''
-            SELECT time, feature_id, value
-            FROM feature_values
-            WHERE (
-                time BETWEEN {date}
-                AND {date + datetime.timedelta(days=1)}
+        if self.store_features_as_pickle:
+            file_path = os.path.join(
+                self.database_file_path, ticker, date.isoformat() + '.pickle'
             )
-            AND feature_id IN ("{'", "'.join(map(str, feature_ids))}")
-        '''
+            assert os.path.exists(file_path), (
+                f'Features are not generated for {ticker} on {date}.'
+            )
+            result = pd.read_pickle(file_path)
 
-        with self as con:
-            con.execute(query)
-            result = con.fetchall()
+        else:
+            query = f'''
+                SELECT time, feature_id, value
+                FROM feature_values
+                WHERE (
+                    time BETWEEN {date}
+                    AND {date + datetime.timedelta(days=1)}
+                )
+            '''
+            with self as con:
+                con.execute(query)
+                result = con.fetchall()
+
         return result
