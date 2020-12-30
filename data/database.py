@@ -30,11 +30,14 @@ class Database:
     
     """
     
-    def __init__(self, credentials):
+    def __init__(self, credentials, database_file_path='database_files'):
         self._credentials = credentials
         self._connection = None
         self._cursor_kwargs = {}
         self._create_tables()
+        self.database_file_path = database_file_path
+        if not os.path.exists(database_file_path):
+            os.mkdir(database_file_path)
 
     def __call__(self, **kwargs):
         self._cursor_kwargs = kwargs
@@ -237,7 +240,7 @@ class Database:
             .dt.tz_localize(None)
         return df.drop('timestamp', axis=1)
 
-    def store_features(self, ticker, df, descriptions):
+    def store_features(self, ticker, date, df, descriptions, store_as_file=False):
         ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
@@ -262,31 +265,38 @@ class Database:
 
             # Insert summary of feature values.
             query = f'''
-                INSERT INTO feature_values_summary (feature_id, date) 
-                VALUES (%s, %s)
+                INSERT INTO feature_values_summary (
+                    feature_id, date, store_as_file
+                ) 
+                VALUES (%s, %s, %s)
             '''
-            dates = set(df.index.date)
             values = [
-                (feature_id, date)
-                for date in dates
+                (feature_id, date, store_as_file)
                 for feature_id in df.columns
             ]
             con.executemany(query, values)
 
-            df = df.rename_axis('time', index=True) \
-                .reset_index() \
-                .melt(id_vars='time', var_name='feature_id') \
-                .sort_values(['time', 'feature_id'])
+            if store_as_file:
+                file_path = os.path.join(self.database_file_path, ticker)
+                if not os.path.exists(file_path):
+                    os.mkdir(file_path)
+                df.to_pickle(os.path.join(file_path, date.isoformat() + '.json'))
 
-            with tempfile.NamedTemporaryFile() as temp:
+            else:
+                df = df.rename_axis('time', index=True) \
+                    .reset_index() \
+                    .melt(id_vars='time', var_name='feature_id') \
+                    .sort_values(['time', 'feature_id'])
 
-                df.to_csv(temp.name, sep='\t', index=False)
-                temp.flush()
+                with tempfile.NamedTemporaryFile() as temp:
 
-                con.execute(
-                    f'LOAD DATA LOCAL INFILE "{temp.name}" '
-                    'INTO TABLE feature_values IGNORE 1 LINES'
-                )
+                    df.to_csv(temp.name, sep='\t', index=False)
+                    temp.flush()
+
+                    con.execute(
+                        f'LOAD DATA LOCAL INFILE "{temp.name}" '
+                        'INTO TABLE feature_values IGNORE 1 LINES'
+                    )
 
     def _get_feature_ids(self, ticker, feature):
         query = f'''

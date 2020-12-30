@@ -84,6 +84,7 @@ CREATE TABLE IF NOT EXISTS feature_values (
 CREATE TABLE IF NOT EXISTS feature_values_summary (
     feature_id INT NOT NULL,
     date DATE NOT NULL,
+    store_as_file BOOLEAN NOT NULL,
     PRIMARY KEY (feature_id, date),
     FOREIGN KEY (feature_id) REFERENCES features(id)
 ) ENGINE=INNODB;
