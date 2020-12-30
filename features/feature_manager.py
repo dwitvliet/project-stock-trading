@@ -83,8 +83,9 @@ class FeatureManager:
                 f'The {len(self.features)} features(s) are already stored for '
                 f'{date_from} to {date_to}.'
             )
+        else:
+            logging.info(f'Generating features for {len(dates_to_generate)} days.')
 
-        logging.info(f'Generating features for {len(dates_to_generate)} days.')
         for date, features in dates_to_generate.iterrows():
             dfs = []
             descriptions = {}
