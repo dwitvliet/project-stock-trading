@@ -11,5 +11,6 @@ __pycache__/
 # Config files.
 /config.py
 
-# Database files.
+# Output files.
 /database_files
+/models
