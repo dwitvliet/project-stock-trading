@@ -15,11 +15,9 @@ def evaluate(model, train, test):
     Accuracy: {metrics.accuracy_score(train_y, train_pred)}
     Precision: {metrics.precision_score(train_y, train_pred, average='weighted')}
     Recall: {metrics.recall_score(train_y, train_pred, average='weighted')}
-    F1: {metrics.f1_score(train_y, train_pred, average='weighted')}
     
     Test scores:
     Accuracy: {metrics.accuracy_score(test_y, test_pred)}
     Precision: {metrics.precision_score(test_y, test_pred, average='weighted')}
     Recall: {metrics.recall_score(test_y, test_pred, average='weighted')}
-    F1: {metrics.f1_score(test_y, test_pred, average='weighted')}
     '''
