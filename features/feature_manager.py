@@ -1,9 +1,9 @@
 import logging
-import tqdm
 import sys
 
 import numpy as np
 import pandas as pd
+import tqdm
 
 import data.data_manager as data
 
