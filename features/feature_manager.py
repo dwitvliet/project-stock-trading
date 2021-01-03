@@ -1,11 +1,14 @@
 import logging
 import sys
+import functools
 
 import numpy as np
 import pandas as pd
 import tqdm
 
 import data.data_manager as data
+
+tqdm = functools.partial(tqdm.tqdm, file=sys.stdout, position=0, leave=True)
 
 
 class FeatureManager:
@@ -62,80 +65,56 @@ class FeatureManager:
 
         # Check which dates within the date range do not already have generated
         # features.
-        dates_to_generate = pd.DataFrame(
-            index=data.get_open_dates(self.ticker, date_from, date_to),
-            columns=self.features.keys()
-        )
-        if skip_stored:
-            dates_to_generate = dates_to_generate.fillna(False)
-            for feature_name in self.features:
-                dates_to_generate.loc[
-                    data.dates_missing_from_database(
-                        self.ticker, date_from, date_to, feature_name
-                    ),
-                    feature_name
-                ] = True
-        else:
-            dates_to_generate = dates_to_generate.fillna(True)
+        dates_in_range = data.get_open_dates(self.ticker, date_from, date_to)
+        dates_stored = data.db.get_stored_dates_for_feature(self.ticker, '')
 
-        # For each date with features to be generated, iterate each features.
-        dates_to_generate = dates_to_generate[dates_to_generate.sum(axis=1) > 0]
-        if dates_to_generate.size == 0:
-            logging.info(
-                f'The {len(self.features)} features(s) are already stored for '
-                f'{date_from} to {date_to}.'
-            )
+        logging.info('Feature generation started.')
 
-        logging.info('Started feature generation.')
-        with tqdm.tqdm(total=len(dates_to_generate), file=sys.stdout, position=0, leave=True) as pbar:
+        for date in tqdm(dates_in_range):
+            if skip_stored and date in dates_stored:
+                continue
+            dfs = []
+            descriptions = {}
+            for feature_name, feature in self.features.items():
 
-            for date, features in dates_to_generate.iterrows():
-                pbar.update(1)
-                pbar.set_description('')
-                dfs = []
-                descriptions = {}
-                # logging.info(f'Generating {features.sum()} features(s) for {date}.')
-                for feature_name in features[features].index:
-                    feature = self.features[feature_name]
+                # Generate a dataframe of results for the features.
+                df = feature['func'](self.ticker, date, feature['params'])
+                if type(df) == pd.Series:
+                    df = df.rename(feature_name).to_frame()
 
-                    # Generate a dataframe of results for the features.
-                    df = feature['func'](self.ticker, date, feature['params'])
-                    if type(df) == pd.Series:
-                        df = df.rename(feature_name).to_frame()
+                # Ensure no accidentally left in NaNs or infinite values.
+                df = df.replace([np.inf, -np.inf], np.nan)
+                nan_counts = df.isna().to_numpy().sum()
+                assert nan_counts == 0, (
+                    f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
+                    f' NaN values for date {date}.'
+                )
 
-                    # Ensure no accidentally left in NaNs or infinite values.
-                    df = df.replace([np.inf, -np.inf], np.nan)
-                    nan_counts = df.isna().to_numpy().sum()
-                    assert nan_counts == 0, (
-                        f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
-                        f' NaN values for date {date}.'
+                # Ensure all sub-features names are unique.
+                assert df.columns.size == df.columns.unique().size, (
+                    f'Not all features names for `{feature_name}` are unique.'
+                )
+
+                # Store results in database.
+                if df.columns.size > 1:
+                    df = df.add_prefix(
+                        feature_name + '__'
                     )
 
-                    # Ensure all sub-features names are unique.
-                    assert df.columns.size == df.columns.unique().size, (
-                        f'Not all features names for `{feature_name}` are unique.'
-                    )
+                for col in df.columns:
+                    descriptions[col] = feature['desc']
+                dfs.append(df)
 
-                    # Store results in database.
-                    if df.columns.size > 1:
-                        df = df.add_prefix(
-                            feature_name + '__'
-                        )
+            df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
 
-                    for col in df.columns:
-                        descriptions[col] = feature['desc']
-                    dfs.append(df)
-
-                df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
-
-                if save_to_db:
-                    # logging.info(
-                    #     f'Inserting {df_final.shape[1]} sub-features(s) into the '
-                    #     f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
-                    # )
-                    data.db.store_features(self.ticker, date, df_final, descriptions)
-                else:
-                    generated_features.append(df_final)
+            if save_to_db:
+                # logging.info(
+                #     f'Inserting {df_final.shape[1]} sub-features(s) into the '
+                #     f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
+                # )
+                data.db.store_features(self.ticker, date, df_final, descriptions)
+            else:
+                generated_features.append(df_final)
 
         if save_to_db and len(generated_features) > 0:
             self.df = pd.concat(
