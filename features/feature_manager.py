@@ -1,4 +1,6 @@
 import logging
+import tqdm
+import sys
 
 import numpy as np
 import pandas as pd
@@ -83,54 +85,56 @@ class FeatureManager:
                 f'The {len(self.features)} features(s) are already stored for '
                 f'{date_from} to {date_to}.'
             )
-        else:
-            logging.info(f'Generating features for {len(dates_to_generate)} days.')
 
-        for date, features in dates_to_generate.iterrows():
-            dfs = []
-            descriptions = {}
-            logging.info(f'Generating {features.sum()} features(s) for {date}.')
-            for feature_name in features[features].index:
-                feature = self.features[feature_name]
+        with tqdm.tqdm(total=len(dates_to_generate), file=sys.stdout, position=0, leave=True) as pbar:
 
-                # Generate a dataframe of results for the features.
-                df = feature['func'](self.ticker, date, feature['params'])
-                if type(df) == pd.Series:
-                    df = df.rename(feature_name).to_frame()
+            for date, features in dates_to_generate.iterrows():
+                pbar.set_description('Feature generation')
+                pbar.update(1)
+                dfs = []
+                descriptions = {}
+                # logging.info(f'Generating {features.sum()} features(s) for {date}.')
+                for feature_name in features[features].index:
+                    feature = self.features[feature_name]
 
-                # Ensure no accidentally left in NaNs or infinite values.
-                df = df.replace([np.inf, -np.inf], np.nan)
-                nan_counts = df.isna().to_numpy().sum()
-                assert nan_counts == 0, (
-                    f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
-                    f' NaN values for date {date}.'
-                )
+                    # Generate a dataframe of results for the features.
+                    df = feature['func'](self.ticker, date, feature['params'])
+                    if type(df) == pd.Series:
+                        df = df.rename(feature_name).to_frame()
 
-                # Ensure all sub-features names are unique.
-                assert df.columns.size == df.columns.unique().size, (
-                    f'Not all features names for `{feature_name}` are unique.'
-                )
-
-                # Store results in database.
-                if df.columns.size > 1:
-                    df = df.add_prefix(
-                        feature_name + '__'
+                    # Ensure no accidentally left in NaNs or infinite values.
+                    df = df.replace([np.inf, -np.inf], np.nan)
+                    nan_counts = df.isna().to_numpy().sum()
+                    assert nan_counts == 0, (
+                        f'Feature `{feature_name}` ({self.ticker}) has {nan_counts}'
+                        f' NaN values for date {date}.'
                     )
 
-                for col in df.columns:
-                    descriptions[col] = feature['desc']
-                dfs.append(df)
+                    # Ensure all sub-features names are unique.
+                    assert df.columns.size == df.columns.unique().size, (
+                        f'Not all features names for `{feature_name}` are unique.'
+                    )
 
-            df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
+                    # Store results in database.
+                    if df.columns.size > 1:
+                        df = df.add_prefix(
+                            feature_name + '__'
+                        )
 
-            if save_to_db:
-                logging.info(
-                    f'Inserting {df_final.shape[1]} sub-features(s) into the '
-                    f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
-                )
-                data.db.store_features(self.ticker, date, df_final, descriptions)
-            else:
-                generated_features.append(df_final)
+                    for col in df.columns:
+                        descriptions[col] = feature['desc']
+                    dfs.append(df)
+
+                df_final = pd.concat(dfs, axis=1, sort=False, copy=False)
+
+                if save_to_db:
+                    # logging.info(
+                    #     f'Inserting {df_final.shape[1]} sub-features(s) into the '
+                    #     f'database ({df_final.memory_usage().sum()/1024/1024:.2f} MB).'
+                    # )
+                    data.db.store_features(self.ticker, date, df_final, descriptions)
+                else:
+                    generated_features.append(df_final)
 
         if save_to_db and len(generated_features) > 0:
             self.df = pd.concat(
