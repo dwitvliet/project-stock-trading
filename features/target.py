@@ -13,9 +13,7 @@ def label_buy_or_sell(ticker, date, params):
     """ Label price increases as 'buy' and decreases as 'sell'.
 
     Any increases larger than the `gain_threshold` is labeled as 'buy' whereas
-    the rest is labeled as 'sell'. To distinguish when during the increase that
-    a buy is profitable, and when it is only profitable to hold an existing buy,
-    the last small increase before selling is labeled as 'keep'.
+    the rest is labeled as 'sell'.
 
     Args:
         ticker (str): Ticker symbol.
@@ -26,6 +24,9 @@ def label_buy_or_sell(ticker, date, params):
                 noise.
             "gain_threshold" (float): The threshold that an increase have to be
                 above to be considered profitable.
+            "classify_keep" (bool): If true, distinguishes when during an
+                increase that a buy is always profitable, and when it is only
+                profitable to keep if already bought.
 
     Returns:
         pd.Series
@@ -33,6 +34,7 @@ def label_buy_or_sell(ticker, date, params):
     """
     smooth_periods = params.get('periods_to_smooth_by', 3)
     gain_threshold = params.get('gain_threshold', 0.05)
+    classify_keep = params.get('classify_keep', False)
 
     # Get price aggregates per second.
     bars = data.get_bars(
@@ -89,7 +91,7 @@ def label_buy_or_sell(ticker, date, params):
 
         # Separate 'buy' epochs into 'buy' and 'keep', to prevent buying shortly
         # before the price decreases.
-        if action == 'buy':
+        if classify_keep and action == 'buy':
             last_idx_to_buy = max_extremum
             for idx in reversed(range(start_extremum, max_extremum)):
                 if max_price - bars[idx] < gain_threshold:
@@ -187,7 +189,7 @@ def plot_timeseries(bars, columns, prediction='prediction'):
     legend_elements = [
         mpl.patches.Patch(label='Buy', fc='green', ec='green', alpha=0.2),
         mpl.patches.Patch(label='Keep', fc='white', ec='#aaaaaa'),
-        mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
+        # mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
     ]
     axes[0].legend(handles=legend_elements, loc='upper right')
 
