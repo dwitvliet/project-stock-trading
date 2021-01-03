@@ -86,11 +86,12 @@ class FeatureManager:
                 f'{date_from} to {date_to}.'
             )
 
+        logging.info('Started feature generation.')
         with tqdm.tqdm(total=len(dates_to_generate), file=sys.stdout, position=0, leave=True) as pbar:
 
             for date, features in dates_to_generate.iterrows():
-                pbar.set_description('Feature generation')
                 pbar.update(1)
+                pbar.set_description('')
                 dfs = []
                 descriptions = {}
                 # logging.info(f'Generating {features.sum()} features(s) for {date}.')
