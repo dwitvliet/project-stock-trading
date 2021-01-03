@@ -354,3 +354,14 @@ class Database:
                 result = con.fetchall()
 
         return result
+
+    def feature_ids_to_names(self, ticker):
+        query = f'''
+            SELECT id, name
+            FROM features
+            WHERE ticker_id = {self._get_ticker_id(ticker)}
+        '''
+        with self as con:
+            con.execute(query)
+            result = con.fetchall()
+        return dict(result)
