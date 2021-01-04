@@ -188,8 +188,8 @@ def plot_timeseries(bars, columns, prediction='prediction'):
 
     legend_elements = [
         mpl.patches.Patch(label='Buy', fc='green', ec='green', alpha=0.2),
-        mpl.patches.Patch(label='Keep', fc='white', ec='#aaaaaa'),
-        # mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
+        # mpl.patches.Patch(label='Keep', fc='white', ec='#aaaaaa'),
+        mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
     ]
     axes[0].legend(handles=legend_elements, loc='upper right')
 
