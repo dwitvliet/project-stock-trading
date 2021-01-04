@@ -114,9 +114,9 @@ def profits(bars, label, buy_cost=0):
 
     Args:
         bars (pd.Series): Time series with prices.
-        label (pd.Series): Time series containing predictions on whether
-            to buy or not. Values should be either 1 (buy), 0 (keep), or -1
-            (sell).
+        label (pd.Series|np.ndarray): Time series containing predictions on
+            whether to buy or not. Values should be either 1 (buy), 0 (keep), or
+             -1 (sell).
         buy_cost (float, optional): The cost of buying and selling a stock, to
             be substracted from the profits.
 
@@ -124,6 +124,9 @@ def profits(bars, label, buy_cost=0):
         dict
 
     """
+
+    if type(label) == np.ndarray:
+        label = pd.Series(label, index=bars.index)
 
     # Determine which time periods the stock is owned.
     own = pd.Series(index=bars.index)
