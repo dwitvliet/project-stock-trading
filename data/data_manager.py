@@ -112,7 +112,7 @@ def download_trades(ticker, date_from, date_to, data_type='trades',
     if len(dates_to_fetch) == 0:
         if verbose:
             logging.info(
-                f'All days of {data_type} from {date_from} to {date_to} are'
+                f'All days of {data_type} from {date_from} to {date_to} are '
                 'already stored.'
             )
         return
