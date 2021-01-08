@@ -106,17 +106,16 @@ def label_buy_or_sell(ticker, date, params):
     return label.replace({'buy': 1, 'keep': 0, 'sell': -1})
 
 
-def profits(bars, label, buy_cost=0):
+def profits(prices, labels, buy_cost=0):
     """ Test how profitable predictions are.
 
     Given a dataframe of prices and a prediction on whether to buy or sell at a
     certain time, calculate the profits gained during the time period.
 
     Args:
-        bars (pd.Series): Time series with prices.
-        label (pd.Series|np.ndarray): Time series containing predictions on
-            whether to buy or not. Values should be either 1 (buy), 0 (keep), or
-             -1 (sell).
+        prices (pd.Series): Time series with prices.
+        labels (pd.Series|np.ndarray): Time series containing predictions on
+            whether to buy or not. Values should be either 1 (buy) or -1 (sell).
         buy_cost (float, optional): The cost of buying and selling a stock, to
             be substracted from the profits.
 
@@ -125,17 +124,16 @@ def profits(bars, label, buy_cost=0):
 
     """
 
-    if type(label) == np.ndarray:
-        label = pd.Series(label, index=bars.index)
+    if type(labels) == np.ndarray:
+        labels = pd.Series(labels, index=prices.index)
 
     # Determine which time periods the stock is owned.
-    own = pd.Series(index=bars.index)
-    own[label.isin((1, 'buy'))] = True
-    own[label.isin((-1, 'sell'))] = False
-    own = own.fillna(method='ffill').fillna(False)
+    own = pd.Series(index=prices.index)
+    own[labels.isin((1, 'buy'))] = True
+    own[labels.isin((-1, 'sell'))] = False
 
     # Determine relative gain during owned epochs.
-    bars = bars.rename('price').to_frame()
+    bars = prices.copy().rename('price').to_frame()
     bars['increase'] = bars.shift(-1) - bars
     bars['increase'] = bars['increase'].fillna(0)
     bars_by_epoch = bars[own].groupby((own.shift() != own).cumsum()[own])
@@ -155,45 +153,36 @@ def profits(bars, label, buy_cost=0):
     }
 
 
-def plot_timeseries(bars, columns, prediction='prediction'):
+def plot_timeseries(prices, labels):
     """ Make a line plot with buys and sells shaded.
 
     Args:
-        bars (pd.DataFrame): The data containing t
-        columns (str or list of str): The columns to plot on the y-axis.
-        prediction (str, option: The column containing buy/sell predictions.
+        prices (pd.Series): Time series with prices.
+        labels (pd.Series|np.ndarray): Time series containing predictions on
+            whether to buy or not. Values should be either 1 (buy) or -1 (sell).
 
     """
 
-    if type(columns) not in (list, tuple):
-        columns = [columns]
+    if type(labels) == np.ndarray:
+        labels = pd.Series(labels, index=prices.index)
 
-    plots = len(columns)
+    fig, ax = plt.subplots(figsize=(9, 3))
 
-    fig, axes = plt.subplots(plots, 1, figsize=(9, plots * 3))
-    if plots == 1:
-        axes = [axes]
+    prices.plot.line(ax=ax, ylabel='Price ($)')
 
-    for column, ax in zip(columns, axes):
-        bars[column].plot.line(ax=ax, ylabel=column)
-
-    predictions = bars[prediction]
-    cumsum = (predictions.shift() != predictions).cumsum()
-    pred_starts = predictions.groupby(cumsum).head(1)
-    pred_ends = predictions.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
-    for pred, start, end in zip(pred_starts, pred_starts.index,
-                                pred_ends.index):
-        for ax in axes:
-            if pred in ('buy', 1):
-                ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
-            if pred in ('sell', -1):
-                ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
+    cumsum = (labels.shift() != labels).cumsum()
+    label_starts = labels.groupby(cumsum).head(1)
+    label_ends = labels.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
+    for label, start, end in zip(label_starts, label_starts.index, label_ends.index):
+        if label in ('buy', 1):
+            ax.axvspan(start, end, color='green', alpha=0.2, lw=0)
+        if label in ('sell', -1):
+            ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
 
     legend_elements = [
         mpl.patches.Patch(label='Buy', fc='green', ec='green', alpha=0.2),
-        # mpl.patches.Patch(label='Keep', fc='white', ec='#aaaaaa'),
         mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
     ]
-    axes[0].legend(handles=legend_elements, loc='upper right')
+    ax.legend(handles=legend_elements, loc='upper right')
 
     plt.show()
