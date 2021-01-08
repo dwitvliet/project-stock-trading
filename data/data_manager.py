@@ -79,7 +79,7 @@ def get_trading_hours(ticker, date, extended_hours=False):
 
 
 @functools.lru_cache(maxsize=5)
-def get_trading_hours_index(ticker, date, extended_hours=False):
+def get_trading_hours_index(ticker, date, extended_hours=False, freq='1S'):
 
     open_time, close_time = get_trading_hours(
         ticker, date, extended_hours
@@ -87,7 +87,7 @@ def get_trading_hours_index(ticker, date, extended_hours=False):
     return pd.date_range(
         datetime.datetime.combine(date, open_time),
         datetime.datetime.combine(date, close_time),
-        freq='1S'
+        freq=freq
     )
 
 
@@ -174,12 +174,13 @@ def get_trades(ticker, date_from, date_to=None, data_type='trades'):
 def get_quotes(ticker, date_from, date_to=None):
     quotes = get_trades(ticker, date_from, date_to, data_type='quotes')
     quotes['spread'] = quotes['ask_price'] - quotes['bid_price']
+    quotes.loc[quotes['spread'] < 0, 'spread'] = 0
     return quotes
 
 
 @functools.lru_cache(maxsize=20)
-def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
-             extended_hours=False, fillna=False):
+def get_bars(ticker, date, data_type='trades', agg='mean', smooth_periods=1,
+             freq='1S', extended_hours=False, fillna=False):
 
     if type(date) == str:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
@@ -192,7 +193,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
 
     # Aggregate by the second. Shift after aggregation for each bar to represent
     # what happened leading up to the time point (rather than after it).
-    grouper = pd.Grouper(key='time', freq='1S')
+    grouper = pd.Grouper(key='time', freq=freq)
     if agg == 'weighted_mean':
         bars = descriptive_stats.weighted_mean(
             trades[['price', 'volume', 'time']],
@@ -211,7 +212,7 @@ def get_bars(ticker, date, agg='mean', data_type='trades', smooth_periods=1,
     # Restrict time to tradings hours. Includes the opening time, which
     # represents trading data during one second of pre-market trading (will be
     # NaN if extended hours are requested).
-    bars = bars.reindex(get_trading_hours_index(ticker, date, extended_hours))
+    bars = bars.reindex(get_trading_hours_index(ticker, date, extended_hours, freq))
 
     return bars
 
