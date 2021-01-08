@@ -233,4 +233,7 @@ def get_features(ticker, date_from, date_to=None):
     for date in open_dates:
         dfs.append(db.get_features(ticker, date))
 
-    return pd.concat(dfs, axis=0, sort=False, copy=False)
+    df_final = pd.concat(dfs, axis=0, sort=False, copy=False)
+    X = df_final.iloc[:, 1:]
+    y = df_final.iloc[:, 0]
+    return X, y
