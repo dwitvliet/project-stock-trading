@@ -1,4 +1,5 @@
 import time
+import random
 import contextlib
 
 
@@ -21,7 +22,7 @@ def serialize_dict(dict_):
     """ Serialize dict to str, sorting keys.
 
     Args:
-        dict_: Dict to sort.
+        dict_ (dict): Dict to sort.
 
     Returns:
         str
@@ -29,3 +30,30 @@ def serialize_dict(dict_):
     """
 
     return '_'.join([f'{k}_{v}' for k, v in sorted(dict_.items())])
+
+
+def sample_dict(dict_, n_samples, random_seed=None):
+    """ Sample keys from dictionary.
+
+    Args:
+        dict_ (dict): Dict to sample, with each value being a list.
+        n_samples (int): Number of items to sample.
+        random_seed (int): Random seed.
+
+    Returns:
+        list of dict
+
+    """
+
+    if random_seed is not None:
+        random.seed(random_seed)
+
+    random_samples = []
+    for _ in range(n_samples):
+        sample = {}
+        while len(sample) == 0 or sample in random_samples:
+            for key, values in sorted(dict_.items()):  # sort to ensure random consistency
+                sample[key] = random.choice(values)
+        random_samples.append(sample)
+
+    return random_samples
