@@ -217,6 +217,12 @@ def get_bars(ticker, date, data_type='trades', agg='mean', smooth_periods=1,
     return bars
 
 
+def get_prices(ticker, date):
+    return get_bars(
+        ticker, date, agg='weighted_mean', smooth_periods=3, fillna=True
+    )
+
+
 def get_features(ticker, date_from, date_to=None):
 
     if date_to is None:
