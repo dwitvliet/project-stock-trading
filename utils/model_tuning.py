@@ -18,7 +18,9 @@ def fit_models(base_model, get_Xy, params, save_dir, skip_existing=True):
 
     Xy = None
 
-    for iteration, param in enumerate(tqdm(params)):
+    progress_bar = tqdm(params)
+    progress_bar.set_description('Fitting')
+    for iteration, param in enumerate(progress_bar):
 
         model_path = os.path.join(
             save_dir,
@@ -49,7 +51,9 @@ def score_models(model_dir, get_Xy_train, get_Xy_test, params, metrics):
 
     Xy_train, Xy_test = None, None
 
-    for iteration, param in enumerate(tqdm(params)):
+    progress_bar = tqdm(params)
+    progress_bar.set_description('Scoring')
+    for iteration, param in enumerate(progress_bar):
 
         model_path = os.path.join(
             model_dir,
