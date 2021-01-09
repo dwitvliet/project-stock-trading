@@ -10,18 +10,18 @@ import utils
 tqdm = functools.partial(tqdm.tqdm, file=sys.stdout, position=0, leave=True)
 
 
-def fit_models(base_model, get_Xy, params, save_to, prefix='', skip_existing=True):
+def fit_models(base_model, get_Xy, params, save_dir, skip_existing=True):
 
-    if not os.path.exists(save_to):
-        os.mkdir(save_to)
+    if not os.path.exists(save_dir):
+        os.mkdir(save_dir)
 
     Xy = None
 
     for iteration, param in enumerate(tqdm(params)):
 
         model_path = os.path.join(
-            save_to,
-            f'{prefix}{iteration}_{utils.utils.serialize_dict(param)}.pkl'
+            save_dir,
+            f'{iteration}_{utils.utils.serialize_dict(param)}.pkl'
         )
         if skip_existing and os.path.exists(model_path):
             continue
