@@ -124,6 +124,9 @@ def profits(prices, labels, buy_cost=0):
 
     """
 
+    if len(prices) != len(labels):
+        return {}
+
     if type(labels) == np.ndarray:
         labels = pd.Series(labels, index=prices.index)
 
