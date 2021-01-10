@@ -11,20 +11,20 @@ import utils
 tqdm = functools.partial(tqdm.tqdm, file=sys.stdout, position=0, leave=True)
 
 
-def fit_params(base_model, get_Xy, params, save_dir, skip_existing=True):
+def fit_parameter_set(base_model, get_Xy, list_of_params, save_dir, skip_existing=True):
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
     Xy = None
 
-    progress_bar = tqdm(params)
+    progress_bar = tqdm(list_of_params)
     progress_bar.set_description('Fitting')
-    for iteration, param in enumerate(progress_bar):
+    for iteration, params in enumerate(progress_bar):
 
         model_path = os.path.join(
             save_dir,
-            f'{iteration}_{utils.utils.serialize_dict(param)}.pkl'
+            f'{iteration}_{utils.utils.serialize_dict(params)}.pkl'
         )
         if skip_existing and os.path.exists(model_path):
             continue
@@ -32,7 +32,7 @@ def fit_params(base_model, get_Xy, params, save_dir, skip_existing=True):
         if Xy is None:
             Xy = get_Xy()
 
-        model = base_model(**param)
+        model = base_model(**params)
         model.fit(*Xy)
         joblib.dump(model, model_path)
 
@@ -49,7 +49,7 @@ def score_models(model_dir, get_Xy_train, get_Xy_test, metrics):
         index=model_indices,
         columns=[
             f'{train_or_test}_{metric_name}'
-            for train_or_test in ('train', 'test')
+            for train_or_test in (['train', 'test'] if get_Xy_train else ['test'])
             for metric_name, _ in metrics
         ],
         dtype=float
@@ -62,13 +62,17 @@ def score_models(model_dir, get_Xy_train, get_Xy_test, metrics):
     for model_fname in progress_bar:
         model_idx = get_model_idx(model_fname)
 
-        if Xy_train is None or Xy_test is None:
+        if Xy_train is None and get_Xy_train:
             Xy_train = get_Xy_train()
+        if Xy_test is None:
             Xy_test = get_Xy_test()
 
         model = joblib.load(os.path.join(model_dir, model_fname))
 
-        for train_or_test, (X, y) in [('train', Xy_train), ('test', Xy_test)]:
+        to_score = [('test', Xy_test)]
+        if get_Xy_train:
+            to_score.append(('train', Xy_train))
+        for train_or_test, (X, y) in to_score:
             y_pred = model.predict(X)
             for metric_name, metric in metrics:
                 results.loc[
