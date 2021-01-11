@@ -48,10 +48,11 @@ def fit_multiple_Xy(model, get_Xy, iterator, save_dir, skip_existing=True):
         if skip_existing and os.path.exists(model_path):
             continue
 
-        joblib.dump(model().fit(*get_Xy(item)), model_path)
+        model.fit(*get_Xy(iteration))
+        joblib.dump(model, model_path)
 
 
-def score_models(model_dir, get_Xy_train, get_Xy_test, metrics):
+def score_models(model_dir, get_Xy_train, get_Xy_test, metrics, changing_Xy=False):
 
     def get_model_idx(model_name):
         return int(model_name.split('_')[0])
@@ -76,10 +77,10 @@ def score_models(model_dir, get_Xy_train, get_Xy_test, metrics):
     for model_fname in progress_bar:
         model_idx = get_model_idx(model_fname)
 
-        if Xy_train is None and get_Xy_train:
-            Xy_train = get_Xy_train()
-        if Xy_test is None:
-            Xy_test = get_Xy_test()
+        if (Xy_train is None or changing_Xy) and get_Xy_train:
+            Xy_train = get_Xy_train(model_idx)
+        if Xy_test is None or changing_Xy:
+            Xy_test = get_Xy_test(model_idx)
 
         model = joblib.load(os.path.join(model_dir, model_fname))
 
