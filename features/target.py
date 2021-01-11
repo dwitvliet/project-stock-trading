@@ -156,6 +156,15 @@ def profits(prices, labels, buy_cost=0):
     }
 
 
+def profits_metric(y_true, y_pred, ticker=None):
+    assert ticker is not None, (
+        'Set `profits_metric` ticker with `functools.partial` before use'
+    )
+    prices = data.get_prices(ticker, y_true.index[0].date())
+    pred_profits = profits(prices, y_pred, buy_cost=0.05)
+    return pred_profits.get('active_gain', 0) - pred_profits.get('passive_gain', 0)
+
+
 def plot_timeseries(prices, labels):
     """ Make a line plot with buys and sells shaded.
 
