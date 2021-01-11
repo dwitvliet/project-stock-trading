@@ -11,7 +11,7 @@ import utils
 tqdm = functools.partial(tqdm.tqdm, file=sys.stdout, position=0, leave=True)
 
 
-def fit_parameter_set(base_model, get_Xy, list_of_params, save_dir, skip_existing=True):
+def fit_multiple_parameters(base_model, get_Xy, list_of_params, save_dir, skip_existing=True):
 
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
@@ -23,8 +23,7 @@ def fit_parameter_set(base_model, get_Xy, list_of_params, save_dir, skip_existin
     for iteration, params in enumerate(progress_bar):
 
         model_path = os.path.join(
-            save_dir,
-            f'{iteration}_{utils.utils.serialize_dict(params)}.pkl'
+            save_dir, f'{iteration}_{utils.utils.serialize(params)}.pkl'
         )
         if skip_existing and os.path.exists(model_path):
             continue
@@ -37,10 +36,25 @@ def fit_parameter_set(base_model, get_Xy, list_of_params, save_dir, skip_existin
         joblib.dump(model, model_path)
 
 
+def fit_multiple_Xy(model, get_Xy, iterator, save_dir, skip_existing=True):
+
+    progress_bar = tqdm(iterator)
+    progress_bar.set_description('Fitting')
+    for iteration, item in enumerate(progress_bar):
+        model_path = os.path.join(
+            save_dir, f'{iteration}_{utils.utils.serialize(item)}.pkl'
+        )
+
+        if skip_existing and os.path.exists(model_path):
+            continue
+
+        joblib.dump(model().fit(*get_Xy(item)), model_path)
+
+
 def score_models(model_dir, get_Xy_train, get_Xy_test, metrics):
 
     def get_model_idx(model_name):
-        return int(model_name.replace('_', '.').split('.')[0])
+        return int(model_name.split('_')[0])
 
     model_fnames = sorted(os.listdir(model_dir), key=get_model_idx)
     model_indices = [get_model_idx(fname) for fname in model_fnames]
