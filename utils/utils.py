@@ -18,18 +18,22 @@ def timer():
     print(f'Time: {elapsed:.2f}s')
 
 
-def serialize_dict(dict_):
+def serialize(variable):
     """ Serialize dict to str, sorting keys.
 
     Args:
-        dict_ (dict): Dict to sort.
+        variable (dict | list | int | str): Item to serialize.
 
     Returns:
         str
 
     """
 
-    return '_'.join([f'{k}_{v}' for k, v in sorted(dict_.items())])
+    if type(variable) == dict:
+        return '_'.join([f'{k}_{v}' for k, v in sorted(variable.items())])
+    elif type(variable) in (list, tuple):
+        return '_'.join(map(str, variable))
+    return str(variable)
 
 
 def sample_dict(dict_, n_samples, random_seed=None):
