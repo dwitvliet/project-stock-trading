@@ -1,11 +1,15 @@
-# project-stock-trading
-Sample project for collecting and predicting stock prices
+# Stock price prediction
+Project to collect and predict stock prices. See the [repository Jupyter Notebook](https://github.com/dwitvliet/project-stock-trading/blob/main/stock_prediction.ipynb) with the analysis and modeling. 
 
-## Setup
+### Todo
+
+- Add docstrings and additional comments to external functions.
+
+### Setup for running the notebook yourself 
 
 Install MySQL.
 
-Install dependencies.
+Install dependencies:
    
     python3 -m pip install requirements.txt
 
