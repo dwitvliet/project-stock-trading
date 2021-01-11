@@ -223,7 +223,7 @@ def get_prices(ticker, date):
     )
 
 
-def get_features(ticker, date_from, date_to=None):
+def get_features(ticker, date_from, date_to=None, feature_ids=None):
 
     if date_to is None:
         date_to = date_from
@@ -237,7 +237,13 @@ def get_features(ticker, date_from, date_to=None):
 
     dfs = []
     for date in open_dates:
-        dfs.append(db.get_features(ticker, date))
+        features = db.get_features(ticker, date)
+        if feature_ids is not None:
+            target_idx = features.columns[0]
+            if target_idx not in feature_ids:
+                feature_ids = feature_ids.insert(0, target_idx)
+            features = features[feature_ids]
+        dfs.append(features)
 
     df_final = pd.concat(dfs, axis=0, sort=False, copy=False)
     X = df_final.iloc[:, 1:]
