@@ -9,28 +9,47 @@ import pandas as pd
 
 
 class Database:
-    
-    """ Database class for all interactions with the MySQL database. 
+    """ Database class for all interactions with the MySQL database.
+
+    Should be used as a context manager, e.g.:
+    database = Database(credentials)
+    with database as connection:
+        connection.execute(query, values)
     
     If the database tables do not exist, they are created upon initialization. 
     The holiday table is populated from `holidays.csv`.
     
     The database contains the tables:
-
     `tickers`: Minimal details on relevant tickers stored in the database.
     `holidays`: List of all holidays among different exchanges, including both 
         dates closed and dates with shorter opening hours.
     `trades`: All trades for specific tickers on specific dates. Includes date 
         of trade, time of trade (in seconds after midnight), price of trade, and
         volume of trade.
+    `quotes: All quotes for specific tickers on specific dates.
     `summary`: Summary table to quickly determine which dates and tickers exist
-        in other tables
+        in the trades and quotes tables.
     `features`: List and description of model features (and target)
     `feature_values`: All values for features.
+    `feature_values_summary`: Summary table to determine which features have
+        generated for which days.
     
     """
     
     def __init__(self, credentials, store_features_as_pickle=False):
+        """ Set up database and create tables if they do not exist.
+
+        Args:
+            credentials (dict): Credentials for database login.
+            store_features_as_pickle (bool, optional): Whether to forgo the
+                `feature_values` database and instead dump each day's generated
+                features as a separate pickle file. Circumventing the database
+                provides much less flexibility, but increases performance
+                significantly as table quickly reaches hundreds of millions of
+                rows otherwise.
+
+        """
+
         self._credentials = credentials
         self._connection = None
         self._cursor_kwargs = {}
@@ -40,12 +59,9 @@ class Database:
         self.database_file_path = 'database_files'
         if store_features_as_pickle and not os.path.exists(self.database_file_path):
             os.mkdir(self.database_file_path)
-
-    def __call__(self, **kwargs):
-        self._cursor_kwargs = kwargs
-        return self
     
     def __enter__(self):
+        """ Open database connection upon entering object context """
         self._connection = mysql.connector.connect(
             **self._credentials, autocommit=True, allow_local_infile=True
         )
@@ -53,6 +69,7 @@ class Database:
         return self._cursor
     
     def __exit__(self, exc_type, exc_value, traceback):
+        """ Close database connection upon existing object context """
         self._cursor.close()
         self._connection.close()
         self._cursor = None
@@ -61,7 +78,14 @@ class Database:
         if exc_type is not None:
             logging.error(exc_type)
 
+    def __call__(self, **kwargs):
+        """ Allow setting cursor arguments when connecting to the database """
+        self._cursor_kwargs = kwargs
+        return self
+
     def _create_tables(self):
+        """ Create database tables if they do not exist """
+
         # Create tables from file.
         with open('data/create_database_tables.sql') as f:
             sql = f.read()
@@ -89,11 +113,21 @@ class Database:
         self._insert_dataframe('holidays', holidays, replace=True)
 
     def _insert_dataframe(self, table, df, replace=False):
-        # Replace NaNs with None and covert dataframe to list of tuples as
+        """ Inserts all rows in a dataframe into a database table
+
+        Args:
+            table (str): Table to insert into.
+            df (pd.DataFrame): Dataframe to insert.
+            replace (bool, optional: Whether to replace any existing values.
+
+        """
+
+        # Replace NaNs with None and convert dataframe to list of tuples as
         # MySQL does not understand NumPy and Pandas data structures.
         df = df.where(df.notna(), None)
         values = list(map(tuple, df.to_numpy()))
 
+        # Insert rows.
         with self as con:
             con.executemany(f'''
                 {'REPLACE' if replace else 'INSERT'} INTO {table} (
@@ -106,6 +140,19 @@ class Database:
 
     @functools.lru_cache(maxsize=None)
     def _get_ticker_id(self, ticker):
+        """ Get id for ticker.
+
+        Can be significantly faster than performing a join for larger tables.
+        The result is cached so that it can be called multiple times without
+        having to perform multiple database calls.
+
+        Args:
+            ticker (str): Ticker to get id for.
+
+        Returns:
+            int: The ticker id.
+
+        """
         query = f'''
             SELECT id
             FROM tickers
@@ -119,6 +166,19 @@ class Database:
 
     @functools.lru_cache(maxsize=None)
     def get_holidays(self, exchange, date_from=None, date_to=None):
+        """ Get all the holidays for an exchange within a date range.
+
+        Args:
+            exchange (str): The symbol for an exchange.
+            date_from (datetime.date or str): First date to get holidays for. If
+                None, get all dates before `date_to`.
+            date_to (datetime.date or str): Last date to get holidays for. If
+                None, get all dates after `date_from`.
+
+        Returns:
+            list of tuple: Dates and hours for each holiday.
+
+        """
         query = f'''
             SELECT date, hours
             FROM holidays
@@ -133,6 +193,7 @@ class Database:
             return con.fetchall()
 
     def get_stored_dates(self, table, ticker):
+        """ Get all stored dates for a table """
         query = f'''
             SELECT date
             FROM summary
@@ -215,6 +276,10 @@ class Database:
         
         The time is converted from a Unix timestamp to to datetime in the local
         timezone of NYSE and Nasdaq (Eastern time).
+
+        Returns:
+            pd.DataFrame
+
         """
         
         if datatype == 'trades':
