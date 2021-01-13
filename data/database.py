@@ -244,10 +244,10 @@ class Database:
         """ Store trades
         
         Args:
-            ticker (str): ticker symbol
-            date (Date): date that trade happened
-            trades (pd.DataFrame): with columns `timestamp`, `price`, and
-                `volume`
+            ticker (str): Ticker symbol.
+            date (datatime.date): Date that trade happened.
+            trades (pd.DataFrame): With columns `timestamp`, `price`, and
+                `volume`.
             data_type (str, 'trades' or 'quotes'): The type or data to fetch.
         
         """
@@ -308,10 +308,21 @@ class Database:
         return df.drop('timestamp', axis=1)
 
     def store_features(self, ticker, date, df, descriptions):
+        """ Store all generated features for a specific date.
+
+        Args:
+            ticker (str): Ticker that features are generated for.
+            date (datatime.date): Date that features are generated for.
+            df (pd.DataFrame): All features to store, with each column being a
+                feature, and each row being all the generated feature values
+                for a specific timepoint.
+            descriptions (dict): The description of the features.
+
+        """
         ticker_id = self._get_ticker_id(ticker)
 
         with self as con:
-            # Insert feature names and description.
+            # Insert feature names and descriptions.
             query = f'''
                 INSERT INTO features (ticker_id, name, description) 
                 VALUES (%s, %s, %s)
@@ -320,7 +331,7 @@ class Database:
             values = [(ticker_id, col, descriptions[col]) for col in df.columns]
             con.executemany(query, values)
 
-            # Get unique id of feature.
+            # Get unique id of features.
             query = f'''
                 SELECT name, id
                 FROM features
@@ -343,12 +354,17 @@ class Database:
             ]
             con.executemany(query, values)
 
+            # Store the actual feature values. If storing as a pickle, the
+            # dataframe is dumped directly to the local database directory.
             if self.store_features_as_pickle:
                 file_path = os.path.join(self.database_file_path, ticker)
                 if not os.path.exists(file_path):
                     os.mkdir(file_path)
                 df.to_pickle(os.path.join(file_path, date.isoformat() + '.pickle'))
 
+            # If storing into the database table, the dataframe is saved as a
+            # temporary text file and then stored using `LOAD DATA`, which is
+            # significantly faster than performing an `INSERT` query.
             else:
                 df = df.rename_axis('time', index=True) \
                     .reset_index() \
@@ -356,7 +372,6 @@ class Database:
                     .sort_values(['time', 'feature_id'])
 
                 with tempfile.NamedTemporaryFile() as temp:
-
                     df.to_csv(temp.name, sep='\t', index=False)
                     temp.flush()
 
@@ -379,6 +394,16 @@ class Database:
         return feature_ids
 
     def get_stored_dates_for_feature(self, ticker, features):
+        """ Get all stored dates for a list of feature values.
+
+        Assumes that all features in the list were stored together for the same
+        dates.
+
+        Args:
+            ticker (str): Ticker to get features for.
+            features (list): Features to get dates for.
+
+        """
         feature_ids = self._get_feature_ids(ticker, features)
         if len(feature_ids) == 0:
             return feature_ids
@@ -395,6 +420,7 @@ class Database:
         return dates
 
     def get_features(self, ticker, date):
+        """ Get all stored feature values for a date """
 
         if self.store_features_as_pickle:
             file_path = os.path.join(
@@ -421,6 +447,7 @@ class Database:
         return result
 
     def feature_ids_to_names(self, ticker):
+        """ Get map of features ids to feature names """
         query = f'''
             SELECT id, name
             FROM features
