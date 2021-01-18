@@ -1,10 +1,6 @@
 # Stock price prediction
 Project to collect and predict stock prices. See the [repository Jupyter Notebook](https://github.com/dwitvliet/project-stock-trading/blob/main/stock_prediction.ipynb) with the analysis and modeling. 
 
-### Todo
-
-- Add docstrings and additional comments to external functions.
-
 ### Setup for running the notebook yourself 
 
 Install MySQL.
