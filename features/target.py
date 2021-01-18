@@ -157,6 +157,19 @@ def profits(prices, labels, buy_cost=0):
 
 
 def profits_metric(y_true, y_pred, ticker=None):
+    """ Calculate profit during model optimization.
+
+    Calculates the difference between the active and passive profits with
+    predicted buy/sell classifications. Can be used as a scikit-learn metric if
+    the ticker argument is preset with functools.partials, e.g.:
+    functools.partial(profits_metric, ticker='AAPL')
+
+    Args:
+        y_true (pd.Series): The true buy/sell classification with datetime index.
+        y_pred (pd.Series|np.ndarray): The predicted buy/sell classifications.
+        ticker (str): The ticker that buy/selss are predicted for.
+
+    """
     assert ticker is not None, (
         'Set `profits_metric` ticker with `functools.partial` before use'
     )
@@ -175,13 +188,15 @@ def plot_timeseries(prices, labels):
 
     """
 
+    # Ensure that both prices and labels are pandas time series.
     if type(labels) == np.ndarray:
         labels = pd.Series(labels, index=prices.index)
 
+    # Plot prices.
     fig, ax = plt.subplots(figsize=(9, 3))
-
     prices.plot.line(ax=ax, ylabel='Price ($)')
 
+    # Plot buys as green and sells as red.
     cumsum = (labels.shift() != labels).cumsum()
     label_starts = labels.groupby(cumsum).head(1)
     label_ends = labels.groupby(cumsum.shift().fillna(cumsum[0])).tail(1)
@@ -191,6 +206,7 @@ def plot_timeseries(prices, labels):
         if label in ('sell', -1):
             ax.axvspan(start, end, color='red', alpha=0.2, lw=0)
 
+    # Draw legend.
     legend_elements = [
         mpl.patches.Patch(label='Buy', fc='green', ec='green', alpha=0.2),
         mpl.patches.Patch(label='Sell', fc='red', ec='red', alpha=0.2),
