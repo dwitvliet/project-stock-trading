@@ -4,6 +4,12 @@ import data.data_manager as data
 
 
 def current_bar(ticker, date):
+    """ Calculate stats of trades for every second.
+
+    Calculates mean, median, min, max, and standard deviation of price, volume,
+    and price-adjusted volume (price * volume).
+
+    """
 
     bars = pd.DataFrame(index=data.get_trading_hours_index(
         ticker, date, extended_hours=True
