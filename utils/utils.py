@@ -52,6 +52,11 @@ def sample_dict(dict_, n_samples, random_seed=None):
     Returns:
         [dict, ..]
 
+    Examples:
+        >>> dict_to_sample = {'a': [1, 2], 'b': [3, 4, 5]}
+        >>> print(sample_dict(dict_to_sample), 2)
+        [{'a': 2, 'b': 5}, {'a': 1, 'b': 3}]
+
     """
 
     if random_seed is not None:
