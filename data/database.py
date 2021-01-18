@@ -401,7 +401,9 @@ class Database:
 
         Args:
             ticker (str): Ticker to get features for.
-            features (list): Features to get dates for.
+            features (str): Feature(s) to get dates for. Selects all features
+                whose first characters matches (e.g. 'f1' matches 'f1_sub1',
+                'f1_sub2', etc).
 
         """
         feature_ids = self._get_feature_ids(ticker, features)
