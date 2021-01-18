@@ -18,6 +18,15 @@ class FeatureManager:
         self.features = {}
 
     def add(self, name=None, func=None, params=None, desc=None):
+        """ Register feature to generate.
+
+        Args:
+            name (str): Name of feature.
+            func (func): Function to generate feature.
+            params (dict, optional): Parameters for feature genereation function.
+            desc (str): Description of feature.
+
+        """
         assert name is not None and func is not None, (
             'A name and function is required for a features.'
         )
@@ -38,6 +47,7 @@ class FeatureManager:
         }
 
     def add_many(self, features):
+        """ Register multiple features at once. """
         for feature in features:
             self.add(*feature)
 
