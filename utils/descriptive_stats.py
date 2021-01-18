@@ -64,25 +64,3 @@ def weighted_median(df, values=None, weights=None, groupby=None):
         return x.loc[median_by_volume, values].mean()
     
     return df.groupby(groupby).apply(median)
-
-
-# n = 10000
-
-# np.random.seed(0)
-
-# values = np.random.uniform(0, 1, size=n)
-# weights = np.random.randint(0, 5, size=n)
-# groupby = np.random.randint(0, 8000, size=n)
-
-# df = pd.DataFrame({'values': values, 'weights': weights, 'groupby': groupby})
-
-# import time
-
-# time1 = time.time()
-# print(weighted_median(df, 'values', 'weights', groupby='groupby').head())
-# print('Time for `weighted_mean`:', time.time() - time1)
-
-# df['values'].median()
-# # time1 = time.time()
-# # weighted_median_by_lambda(df, values='value', weights='wt', groupby='date')
-# # print('Time for `weighted_mean_by_lambda`:', time.time() - time1)
