@@ -8,11 +8,27 @@ import tqdm
 
 import utils
 
+# Simplify `tqdm` calling.
 tqdm = functools.partial(tqdm.tqdm, file=sys.stdout, position=0, leave=True)
 
 
 def fit_multiple_parameters(base_model, get_Xy, list_of_params, save_dir, skip_existing=True):
+    """ Fit multiple models using different parameters on the same data.
 
+    Args:
+        base_model (func): Function that takes the parameters as keyword
+            arguments and returns a model to fit.
+        get_Xy (func): Function that returns the training data as (X, y). This
+            function is not called if `skip_existing` is `True` and all models
+            are already generated.
+        list_of_params (list of dicts): List with different parameter sets to
+            fit models for.
+        save_dir (str): Path to store fitted models.
+        skip_existing (bool, optional): Whether to skip models already stored.
+
+    """
+
+    # Create save directory if it does not exist.
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
 
@@ -22,32 +38,51 @@ def fit_multiple_parameters(base_model, get_Xy, list_of_params, save_dir, skip_e
     progress_bar.set_description('Fitting')
     for iteration, params in enumerate(progress_bar):
 
+        # Skip existing model if requested.
         model_path = os.path.join(
             save_dir, f'{iteration}_{utils.utils.serialize(params)}.pkl'
         )
         if skip_existing and os.path.exists(model_path):
             continue
 
+        # Fetch data and fit model
         if Xy is None:
             Xy = get_Xy()
-
         model = base_model(**params)
         model.fit(*Xy)
+
+        # Store model.
         joblib.dump(model, model_path)
 
 
 def fit_multiple_Xy(model, get_Xy, iterator, save_dir, skip_existing=True):
+    """ Fit the same model multiple times using different data.
+
+    Args:
+        model (sklearn.model): Model to fit.
+        get_Xy (func): Function that takes items of `iterator` as an argument
+            and returns the training data as (X, y). This function is not called
+            if `skip_existing` is `True` and the model is already generated.
+        iterator (list): List to iterate over and use as arguments for `get_Xy`.
+        save_dir (str): Path to store fitted models.
+        skip_existing (bool, optional): Whether to skip models already stored
+
+    Returns:
+
+    """
 
     progress_bar = tqdm(iterator)
     progress_bar.set_description('Fitting')
     for iteration, item in enumerate(progress_bar):
+
+        # Skip existing model if requested.
         model_path = os.path.join(
             save_dir, f'{iteration}_{utils.utils.serialize(item)}.pkl'
         )
-
         if skip_existing and os.path.exists(model_path):
             continue
 
+        # Fit and store model.
         model.fit(*get_Xy(iteration))
         joblib.dump(model, model_path)
 
