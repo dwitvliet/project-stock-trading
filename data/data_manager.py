@@ -17,7 +17,17 @@ api = APIManager(config.api_key)
 
 @functools.lru_cache(maxsize=None)
 def exchange_for_ticker(ticker):
+    """ Get the exchange where a ticker is traded.
+
+    Args:
+        ticker (str): Ticker symbol, e.g. 'AAPL'.
+
+    Returns:
+        str: Exchange symbol, e.g. 'NGS' for Nasdaq.
+
+    """
     ticker_details = db.get_ticker_details(ticker)
+    # Populate the ticker details in the database if they do not already exist.
     if ticker_details is None:
         ticker_details = db.store_ticker_details(api.get_ticker_details(ticker))
     return ticker_details['exchange']
@@ -25,18 +35,16 @@ def exchange_for_ticker(ticker):
 
 @functools.lru_cache(maxsize=5)
 def get_open_dates(ticker, date_from, date_to, exclude_future=True):
-    """
-    Get list of dates within range where exchange is open. Weekends and
-    holidays are excluded.
+    """ Get list of dates within range where exchange is open.
 
     Args:
-        ticker (str): ticker symbol
-        date_from (date|str): first date in range (inclusive)
-        date_to (date|str): last date in range (inclusive)
-        exclude_future (bool, optional): whether to exclude today and future
+        ticker (str): Ticker symbol.
+        date_from (date|str): First date in range (inclusive).
+        date_to (date|str): Last date in range (inclusive).
+        exclude_future (bool, optional): Whether to exclude today and future
             dates.
     Returns:
-        [date, ..]
+        [datetime.date, ..]
     """
 
     exchange = exchange_for_ticker(ticker)
@@ -63,7 +71,16 @@ def get_open_dates(ticker, date_from, date_to, exclude_future=True):
 
 @functools.lru_cache(maxsize=5)
 def get_trading_hours(ticker, date, extended_hours=False):
-    """ Determine open operating hours of exchange for date
+    """ Determine trading hours for a ticker on a date.
+
+    Args:
+        ticker (str): Ticker symbol.
+        date (date|str): Date to get hours for.
+        extended_hours (bool): Whether to included pre- and post-market hours.
+            If `False`, only regular trading hours are considered (9:30 AM -
+            4:00 PM on most days).
+    Returns:
+        (datetime.time, datetime.time): (open_time, close_time)
 
     """
     holidays = dict(db.get_holidays(exchange_for_ticker(ticker)))
@@ -80,6 +97,23 @@ def get_trading_hours(ticker, date, extended_hours=False):
 
 @functools.lru_cache(maxsize=5)
 def get_trading_hours_index(ticker, date, extended_hours=False, freq='1S'):
+    """ Get index spanning trading hours for a ticker.
+
+    Is useful for building dataframes where each row is an aggregate statistic
+    over an interval spanning the entire day (e.g. the mean volume of trades
+    every second).
+
+    Args:
+        ticker (str): Ticker symbol.
+        date (date|str): Date to get hours for.
+        extended_hours (bool): Whether to included pre- and post-market hours.
+        freq (str, optional): The interval frequency to use to generate the
+            time interval.
+
+    Returns:
+        DatetimeIndex
+
+    """
 
     open_time, close_time = get_trading_hours(
         ticker, date, extended_hours
@@ -92,6 +126,20 @@ def get_trading_hours_index(ticker, date, extended_hours=False, freq='1S'):
 
 
 def dates_missing_from_database(ticker, date_from, date_to, data_type):
+    """ Get dates where trades/quotes/feature has not been stored in the database.
+
+    Args:
+        ticker (str): Ticker symbol.
+        date_from (date|str): First date in range (inclusive).
+        date_to (date|str): Last date in range (inclusive).
+        data_type (str): What database table to check. May be 'trades', 'quotes',
+            or the name of a feature.
+
+    Returns:
+        [datetime.date, ..]
+
+    """
+
     dates_with_trades = get_open_dates(ticker, date_from, date_to)
 
     if data_type in ('trades', 'quotes'):
@@ -104,11 +152,24 @@ def dates_missing_from_database(ticker, date_from, date_to, data_type):
 
 def download_trades(ticker, date_from, date_to, data_type='trades',
                     verbose=False):
+    """ Download missing trades from the API and store in database.
 
+    Args:
+        ticker (str): Ticker symbol.
+        date_from (date|str): First date in range (inclusive).
+        date_to (date|str): Last date in range (inclusive).
+        data_type (str, optional): Whether to download 'trades' or 'quotes'.
+        verbose (bool, optional): If `True`, logs the time and duration of each
+            days worth of trades downloaded.
+
+    """
+
+    # Check which dates are not already downloaded and stored to the database.
     dates_to_fetch = dates_missing_from_database(
         ticker, date_from, date_to, data_type
     )
 
+    # Return if everything is already fetched.
     if len(dates_to_fetch) == 0:
         if verbose:
             logging.info(
@@ -156,13 +217,16 @@ def get_trades(ticker, date_from, date_to=None, data_type='trades'):
     if date_to is None:
         date_to = date_from
 
+    # Download any missing trades to the database.
     download_trades(ticker, date_from, date_to, data_type)
 
+    # Determine which dates have trades.
     dates_with_trades = get_open_dates(ticker, date_from, date_to)
     if len(dates_with_trades) == 0:
         logging.info(f'There are no {data_type} for the selected date(s).')
         return
 
+    # Fetch all trades for the date range.
     trades = []
     for date in dates_with_trades:
         trades.append(db.get_trades(ticker, date, data_type))
@@ -181,6 +245,29 @@ def get_quotes(ticker, date_from, date_to=None):
 @functools.lru_cache(maxsize=20)
 def get_bars(ticker, date, data_type='trades', agg='mean', smooth_periods=1,
              freq='1S', extended_hours=False, fillna=False):
+    """ Get aggregate bars for trades/quotes on a specific date.
+
+    Group trades or qoutes by a time interval to generate aggregate bars of
+    their price and volume.
+
+    Args:
+        ticker (str): Ticker symbol to generate bars for.
+        date (datetime.date|str): Date to generate bars for.
+        data_type (str, optional): The data type, 'trades' or 'quotes'.
+        agg (str|func, optional): The aggregate function to call over the time
+            period.
+        smooth_periods (int, optional): How many periods to smooth the time
+            periods after aggregation. Defaults to no smoothing.
+        freq (str, optional): The frequency to group trades/quotes by.
+        extended_hours (bool, optional): Whether to include trades/quotes that
+            happened outside regular trading hours.
+        fillna (bool, optional): Whether to fill empty values. If `True`, empty
+            values are filled by the most recent values.
+
+    Returns:
+        pd.DataFrame: DataFrame with aggregate bars.
+
+    """
 
     if type(date) == str:
         date = datetime.datetime.strptime(date, '%Y-%m-%d').date()
@@ -191,8 +278,9 @@ def get_bars(ticker, date, data_type='trades', agg='mean', smooth_periods=1,
     else:
         trades = get_quotes(ticker, date)
 
-    # Aggregate by the second. Shift after aggregation for each bar to represent
-    # what happened leading up to the time point (rather than after it).
+    # Group trades/quotes by the time frequency. Shift after aggregation for
+    # each bar to represent what happened leading up to the time point (rather
+    # than after it).
     grouper = pd.Grouper(key='time', freq=freq)
     if agg == 'weighted_mean':
         bars = descriptive_stats.weighted_mean(
@@ -218,16 +306,30 @@ def get_bars(ticker, date, data_type='trades', agg='mean', smooth_periods=1,
 
 
 def get_prices(ticker, date):
+    """ Get prices, defined as the weighted mean smoothed over 3 seconds """
     return get_bars(
         ticker, date, agg='weighted_mean', smooth_periods=3, fillna=True
     )
 
 
 def get_features(ticker, date_from, date_to=None, feature_ids=None):
+    """ Get all stored features over a range of dates.
+
+    Args:
+        ticker (str): Ticker symbol.
+        date_from (Date): First date in range to get.
+        date_to (Date, optional): Last date in range to get.
+        feature_ids (list): List of features to filter the result down to.
+
+    Returns:
+        (pd.DataFrame, pd.Series): (Requested features, target value).
+
+    """
 
     if date_to is None:
         date_to = date_from
 
+    # Check that features have been generated for all dates in the range.
     open_dates = get_open_dates(ticker, date_from, date_to)
     dates_with_features = db.get_stored_dates_for_feature(ticker, '')
     assert len(set(open_dates) - set(dates_with_features)) == 0, (
@@ -235,17 +337,20 @@ def get_features(ticker, date_from, date_to=None, feature_ids=None):
         f'to {date_to}.'
     )
 
+    # Fetch all features and concat them into one large dataframe.
     dfs = []
     for date in open_dates:
         features = db.get_features(ticker, date)
+        # Filter features, ensuring that the target variable is never removed.
         if feature_ids is not None:
             target_idx = features.columns[0]
             if target_idx not in feature_ids:
                 feature_ids = feature_ids.insert(0, target_idx)
             features = features[feature_ids]
         dfs.append(features)
-
     df_final = pd.concat(dfs, axis=0, sort=False, copy=False)
+
+    # Extract the target value from the features.
     X = df_final.iloc[:, 1:]
     y = df_final.iloc[:, 0]
     return X, y
