@@ -19,7 +19,7 @@ def timer():
 
 
 def serialize(variable):
-    """ Serialize dict to str, sorting keys.
+    """ Serialize object to str.
 
     Args:
         variable (dict | list | int | str): Item to serialize.
@@ -29,10 +29,15 @@ def serialize(variable):
 
     """
 
+    # If dict, sort keys for reproducibility, then join keys and values by '_'.
     if type(variable) == dict:
         return '_'.join([f'{k}_{v}' for k, v in sorted(variable.items())])
+
+    # If iterable, join items by '_'.
     elif type(variable) in (list, tuple):
         return '_'.join(map(str, variable))
+
+    # Otherwise simply convert to string.
     return str(variable)
 
 
@@ -45,7 +50,7 @@ def sample_dict(dict_, n_samples, random_seed=None):
         random_seed (int): Random seed.
 
     Returns:
-        list of dict
+        [dict, ..]
 
     """
 
